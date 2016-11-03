@@ -3,9 +3,10 @@ import argparse
 from brainpy.eeg import EEG
 
 import settings
-from classifiers.lda_classifier import LDAClassifier
+from base.train_test_splitter import TrainTestSplitter
+from classifiers.anova_svm_classifier import AnovaSVMClassifier
 from etc.data_reader import data_reader
-from etc.train_test_splitter import TrainTestSplitter
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -13,6 +14,7 @@ if __name__ == '__main__':
     parser.add_argument("-g", "--group_size", type=int, default=1)
     parser.add_argument("-t", "--test_proportion", type=float, default=0.2)
     parser.add_argument("-r", "--random_seed", type=int, default=42)
+    parser.add_argument("-c", "--channel_scheme", choices=['single', 'multi'], default='single')
     args = parser.parse_args()
 
     file_name = settings.FILES[args.subject]
@@ -22,8 +24,9 @@ if __name__ == '__main__':
     eeg = TrainTestSplitter(test_proportion=args.test_proportion,
                             random_seed=args.random_seed,
                             channel_scheme='single').eval(eeg)
-    # eeg = PipelineBuilder(LDAClassifier).eval(eeg.train, eeg.train_labels)
-    # eeg = eeg.predict(eeg.test)
+    clf = AnovaSVMClassifier().fit(eeg)
+    clf.test(eeg)
     # eeg.save()
+    print clf.test_accuracy
 
     print "Complete."

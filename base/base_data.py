@@ -18,11 +18,11 @@ class BaseData(MongoIO):
     def _get_params(self):
         d = {'class_name': self.name,
              'update_time': datetime.now()}
-        d.update(self.get_params())
+        d.update(self.get_params_json())
         return d
 
     # this method should be overwritten by subclasses
-    def get_params(self):
+    def get_params_json(self):
         return {}
 
     def to_mongo(self):

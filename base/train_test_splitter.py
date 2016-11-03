@@ -27,7 +27,7 @@ class TrainTestSplitter(BaseData):
     def channel_scheme(self):
         return self._channel_scheme
 
-    def get_params(self):
+    def get_params_json(self):
         return self._params.copy()
 
     def eval(self, eeg):

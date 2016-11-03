@@ -1,42 +1,44 @@
+import json
+
 import pandas as pd
 from sklearn.metrics import accuracy_score
 
 from base.base_data import BaseData
+from utils.json_default import json_default
 
 
 class BaseClassifier(BaseData):
-    def __init__(self, db='eeg', mango_collection='class_coll', random_state=42, test_proportion=0.2):
-        super(BaseClassifier, self).__init__(db, mango_collection)
+    def __init__(self, random_state=42, test_proportion=0.2):
+        super(BaseClassifier, self).__init__()
         self._clf = None
         self.random_state = random_state
         self.test_proportion = test_proportion
-        self.result = pd.DataFrame([])
-        self.accuracy = pd.DataFrame([])
+        self.test_predictions = pd.DataFrame([])
+        self.test_accuracy = None
+        self._pipeline = None
+        self.predictions = []
 
     @property
-    def clf(self):
-        return None
+    def mango_collection(self):
+        return 'class_coll'
 
     @property
-    def name(self):
-        return self.clf.__class__.__name__
+    def pipeline(self):
+        raise NotImplementedError
 
-    def get_params(self):
+    def get_params_json(self):
         return {
-            'classifier': self.name,
+            'pipeline': json.dumps(self.pipeline.get_params(deep=True), default=json_default),
             'random_state': self.random_state,
             'test_proportion': self.test_proportion,
-            "result": self.result.to_json(),
-            "accuracy": self.accuracy.to_json()}
+            "test_predictions": self.test_predictions,
+            "test_accuracy": self.test_accuracy}
 
-    def fit(self, x, y):
-        self._clf = self.clf
-        self._clf.fit(x, y)
+    def fit(self, data_obj):
+        self._pipeline = self.pipeline.fit(data_obj.train, data_obj.train_labels)
         return self
 
-    def predict(self, y):
-        return self._clf.predict(y)
-
-    def accuracy_score(self, y_true, y_pred, normalize=True, sample_weight=None):
-        self.accuracy = accuracy_score(y_true, y_pred, normalize=normalize, sample_weight=sample_weight)
+    def test(self, data_obj):
+        self.test_predictions = self._pipeline.predict(data_obj.test)
+        self.test_accuracy = accuracy_score(data_obj.test_labels, self.test_predictions)
         return self

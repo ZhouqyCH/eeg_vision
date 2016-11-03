@@ -7,8 +7,8 @@ class SVMClassifier(BaseClassifier):
     def clf(self):
         return svm.SVC()
 
-    def get_params(self):
-        d = super(SVMClassifier, self).get_params()
+    def get_params_json(self):
+        d = super(SVMClassifier, self).get_params_json()
         d.update({
             'clf': 'SVC',
             'clf_C': self.clf.C,
