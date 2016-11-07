@@ -8,6 +8,7 @@ MAT_FILES = {s: os.path.join(PATH_TO_MAT_FILES, s.upper()) + ".mat" for s in SUB
 MONGO = {
         'host': 'localhost',
         'db': 'brain',
+        'collection': 'eeg_classification',
         'port': 27017,
         'chunk_size': 100000,
         'drop_collections_on_load': True,

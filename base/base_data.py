@@ -4,16 +4,9 @@ from base.mongo_io import MongoIO
 
 
 class BaseData(MongoIO):
-    def __init__(self):
-        super(BaseData, self).__init__(self.mango_collection)
-
     @property
     def name(self):
         return self.__class__.__name__
-
-    @property
-    def mango_collection(self):
-        return 'eeg_classification'
 
     def _get_params(self):
         d = {'class_name': self.name,
@@ -21,7 +14,6 @@ class BaseData(MongoIO):
         d.update(self.get_params_json())
         return d
 
-    # this method should be overwritten by subclasses
     def get_params_json(self):
         return {}
 

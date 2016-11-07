@@ -10,6 +10,12 @@ from classifiers.lda_classifier import LDAClassifier
 from etc.data_reader import data_reader
 
 
+# TODO: DEBUG FOR THE POTENTIAL
+# TODO: CLASSIFICATION RATES SEEM TO DISAGREE WITH PREVIOUS RESULTS
+# TODO: IMPLEMENT AN OPTION FOR VERBOSITY ON THE CLASSIFICATION MANAGER
+# TODO: SAVE DATA ON MONGODB
+# TODO: SAVE MODEL ON MONGODB
+# TODO: WORK ON TENSOR FLOW
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--subject", choices=settings.SUBJECTS, default=settings.SUBJECTS[0])
@@ -22,7 +28,7 @@ if __name__ == '__main__':
     file_name = settings.MAT_FILES[args.subject]
     eeg = EEG(data_reader=data_reader).read(file_name)
     eeg.average_trials(args.group_size, inplace=True)
-    eeg.get_electric_field(inplace=True)
+    # eeg.get_electric_field(inplace=True)
 
     clf = ClassificationManager([LDAClassifier(), AnovaLDAClassifier()], test_proportion=args.test_proportion,
                                 random_seed=args.random_seed, channel_scheme=args.channel_scheme)
