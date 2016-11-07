@@ -4,10 +4,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 
 from classifiers.base_classifier import BaseClassifier
+from classifiers.merge_components import MergeComponents
 
 
 class AnovaSVMClassifier(BaseClassifier):
     @property
     def pipeline(self):
         anova_filter = SelectKBest(f_regression, k=5)
-        return Pipeline([('anova', anova_filter), ('svc', SVC())])
+        return Pipeline([('merge_comps', MergeComponents()), ('anova', anova_filter), ('classifier', SVC())])

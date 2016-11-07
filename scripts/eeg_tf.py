@@ -30,7 +30,7 @@ if __name__ == '__main__':
     parser.add_argument("subject", choices=settings.SUBJECTS)
     args = parser.parse_args()
 
-    file_name = os.path.join(settings.PATH, args.subject.upper() + ".mat")
+    file_name = os.path.join(settings.PATH_TO_MAT_FILES, args.subject.upper() + ".mat")
     ds = build_data_sets(file_name, avg_group_size=5, derivation='ef', random_state=42, test_size=0.2)
 
     # The input x will consist of a 2d tensor of floating point numbers

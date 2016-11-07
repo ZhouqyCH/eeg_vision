@@ -13,7 +13,7 @@ class BaseData(MongoIO):
 
     @property
     def mango_collection(self):
-        return 'default'
+        return 'eeg_classification'
 
     def _get_params(self):
         d = {'class_name': self.name,
