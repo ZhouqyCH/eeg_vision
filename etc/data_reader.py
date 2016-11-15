@@ -23,6 +23,5 @@ def data_reader(file_name, labels='categoryLabels'):
                 trial_size=trial_size,
                 subject=mat['sub'].ravel()[0],
                 trial_labels=mat[labels].ravel(),
-                is_laplacian=False,
+                der_code=0,
                 group_size=1)
-

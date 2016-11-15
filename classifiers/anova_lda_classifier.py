@@ -9,7 +9,11 @@ from classifiers.merge_components import MergeComponents
 
 class AnovaLDAClassifier(BaseClassifier):
     @property
+    def sklearn_classifier(self):
+        return LinearDiscriminantAnalysis()
+
+    @property
     def pipeline(self):
         anova_filter = SelectKBest(f_regression, k=5)
         return Pipeline([('merge_comps', MergeComponents()), ('anova', anova_filter),
-                         ('classifier', LinearDiscriminantAnalysis())])
+                         ('classifier', self.sklearn_classifier)])

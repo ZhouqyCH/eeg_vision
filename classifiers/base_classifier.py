@@ -1,7 +1,6 @@
 import json
 
 from base.base_data import BaseData
-from classifiers.classification_report import ClassificationReport
 from utils.json_default import json_default
 
 
@@ -15,6 +14,18 @@ class BaseClassifier(BaseData):
     @property
     def pipeline(self):
         raise NotImplementedError
+
+    @property
+    def pipeline_str(self):
+        return ', '.join(self.pipeline.steps)
+
+    @property
+    def sklearn_classifier(self):
+        raise NotImplementedError
+
+    @property
+    def classifier_params(self):
+        return self.sklearn_classifier.get_params()
 
     def get_params_json(self):
         return {
@@ -31,7 +42,3 @@ class BaseClassifier(BaseData):
 
     def score(self, x, y):
         return self._pipeline.score(self, x, y)
-
-    def eval(self, dataset):
-        self.fit(dataset)
-        return ClassificationReport(self, dataset).get_report()

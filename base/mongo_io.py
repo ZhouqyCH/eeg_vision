@@ -3,11 +3,13 @@ import settings
 
 
 class MongoIO(object):
-    def __init__(self):
+    def __init__(self, collection=None):
         self.conn = {'host': settings.MONGO['host'], 'port': settings.MONGO['port']}
         self.client = MongoClient(**self.conn)
         self.db = self.client[settings.MONGO['db']]
-        self.collection = self.db[settings.MONGO['collection']]
+        if not collection:
+            collection = settings.MONGO['collection']
+        self.collection = self.db[collection]
 
     def save(self, data):
         return self.collection.insert(data)
