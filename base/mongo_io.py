@@ -11,8 +11,11 @@ class MongoIO(object):
             collection = settings.MONGO['collection']
         self.collection = self.db[collection]
 
-    def save(self, data):
-        return self.collection.insert(data)
+    def save(self, doc):
+        return self.collection.insert(doc)
+
+    def remove(self, id):
+        return self.collection.remove(id)
 
     def load(self, return_cursor=False, criteria=None, projection=None):
         if criteria is None:

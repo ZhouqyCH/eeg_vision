@@ -1,4 +1,4 @@
-class EEGDataset(object):
+class Dataset(object):
     def __init__(self, name, train, train_labels, test, test_labels):
         self.name = name
         self.train = train

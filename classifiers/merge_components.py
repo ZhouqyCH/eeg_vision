@@ -7,7 +7,7 @@ class MergeComponents(BaseTransform):
         self.has_comps = False
 
     def fit_internal(self, x, y, **kwargs):
-        self.has_comps = x.squeeze().ndim == 3
+        self.has_comps = x.squeeze().ndim > 2
         return self
 
     def transform_internal(self, x):

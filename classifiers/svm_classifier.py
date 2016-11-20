@@ -2,7 +2,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 
 from classifiers.base_classifier import BaseClassifier
-from classifiers.merge_components import MergeComponents
 
 
 class SVMClassifier(BaseClassifier):
@@ -12,5 +11,4 @@ class SVMClassifier(BaseClassifier):
 
     @property
     def pipeline(self):
-        return Pipeline(
-            [('merge_comps', MergeComponents()), ('classifier', self.sklearn_classifier)])
+        return Pipeline([('classifier', self.sklearn_classifier)])

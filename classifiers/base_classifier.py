@@ -1,7 +1,9 @@
 import json
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+from brainpy.utils import json_default
 
 from base.base_data import BaseData
-from utils.json_default import json_default
 
 
 class BaseClassifier(BaseData):
@@ -16,8 +18,8 @@ class BaseClassifier(BaseData):
         raise NotImplementedError
 
     @property
-    def pipeline_str(self):
-        return ', '.join(self.pipeline.steps)
+    def pipeline_steps(self):
+        return ','.join(map(lambda x: x[0], self.pipeline.steps))
 
     @property
     def sklearn_classifier(self):
@@ -33,12 +35,24 @@ class BaseClassifier(BaseData):
             'random_state': self.random_state,
             'classifier': self.name}
 
-    def fit(self, dataset):
-        self._pipeline = self.pipeline.fit(dataset.train, dataset.train_labels)
+    def fit(self, ds):
+        self._pipeline = self.pipeline.fit(ds.train, ds.train_labels)
         return self
 
     def predict(self, x):
         return self._pipeline.predict(x)
 
-    def score(self, x, y):
-        return self._pipeline.score(self, x, y)
+    def score(self, ds):
+        y_pred_train = self.predict(ds.train)
+        y_pred_test = self.predict(ds.test)
+        result = {'test_accuracy': accuracy_score(ds.test_labels, y_pred_test),
+                  'train_accuracy': accuracy_score(ds.train_labels, y_pred_train),
+                  'test_sample_size': len(ds.test),
+                  'train_sample_size': len(ds.train),
+                  'train_confusion_matrix': confusion_matrix(ds.train_labels, y_pred_train).tolist(),
+                  'test_confusion_matrix': confusion_matrix(ds.test_labels, y_pred_test).tolist(),
+                  'classifier': self.name,
+                  'dataset': ds.name,
+                  'pipeline_steps': self.pipeline_steps,
+                  'clf_params': self.classifier_params}
+        return result
