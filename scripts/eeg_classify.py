@@ -6,14 +6,10 @@ from funcy import merge
 
 import settings
 from base.mongo_io import MongoIO
-from base.save_to_db import save_to_db
-from classifiers.anova_lda_classifier import AnovaLDAClassifier
-from classifiers.anova_svm_classifier import AnovaSVMClassifier
-from classifiers.lda_classifier import LDAClassifier
-from classifiers.svm_classifier import SVMClassifier
+from classify.classifiers import AnovaLDAClassifier, AnovaSVMClassifier, LDAClassifier, SVMClassifier
 from etc.data_reader import data_reader
-from etc.eeg_reshape import eeg_reshape
-from etc.train_test_split import train_test_split
+from etc.save_to_db import save_to_db
+from etc.train_test_dataset import train_test_dataset
 from utils.logging_utils import logging_reconfig
 
 # TODO: WORK ON TENSOR FLOW
@@ -35,13 +31,14 @@ def valid_proportion(p):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--subject", nargs="*", choices=settings.SUBJECTS + ['all'], default=['all'])
-    parser.add_argument("-g", "--group_size", type=int, default=0)
-    parser.add_argument("-c", "--channel_scheme", nargs="*", choices=settings.CHANNEL_SCHEMES + ['all'],
-                        default=['all'])
+    parser.add_argument("--group_size", type=int, default=0)
+    parser.add_argument("--channels", nargs="*", choices=map(str, settings.CHANNELS) + ['all'], default=['all'])
+    parser.add_argument("--single_channels", type=bool, default=True)
     parser.add_argument("-d", "--derivation", nargs="*", choices=settings.DERIVATIONS + ['all'], default=['all'])
     parser.add_argument("--classifier", nargs="*", choices=CLASSIFIERS.keys() + ["all"], default=['all'])
-    parser.add_argument("-p", "--test_proportion", type=valid_proportion, default=0.2)
+    parser.add_argument("--test_proportion", type=valid_proportion, default=0.2)
     parser.add_argument("-r", "--random_seed", type=int, default=42)
+    parser.add_argument("--save", type=bool, default=True)
     args = parser.parse_args()
 
     if 'all' in args.subject:
@@ -54,17 +51,18 @@ if __name__ == '__main__':
     else:
         derivations = args.derivation
 
-    if 'all' in args.channel_scheme:
-        channel_scheme = list(settings.CHANNEL_SCHEMES)
+    if 'all' in args.channels:
+        channels = settings.CHANNELS
     else:
-        channel_scheme = args.channel_scheme
+        channels = map(int, args.channels)
 
     if 'all' in args.classifier:
         classifiers = CLASSIFIERS.values()
     else:
         classifiers = [CLASSIFIERS[c] for c in args.classifier]
 
-    db = MongoIO(collection=settings.MONGO_EEG_CLF_COLLECTION)
+    db_eeg = MongoIO(collection=settings.MONGO_EEG_COLLECTION)
+    db_clf = MongoIO(collection=settings.MONGO_CLF_COLLECTION)
     vars_args = vars(args)
     logging_reconfig()
 
@@ -80,16 +78,28 @@ if __name__ == '__main__':
             elif derivation == 'electric_field':
                 eeg.get_electric_field(inplace=True)
 
-            save_to_db(eeg.doc, collection=settings.MONGO_EEG_DATA_COLLECTION, identifier=eeg.identifier)
-            logging.info("Successfully stored data from subject %s - %s - on the DB" % (subject, derivation))
+            if args.save:
+                save_to_db(db_eeg, eeg.doc, identifier=eeg.identifier)
+                logging.info("Successfully saved info on the DB: %s %s _id=%s" % (subject, derivation, eeg.identifier))
 
-            for cs in channel_scheme:
-                datasets = train_test_split(eeg_reshape(eeg.data, eeg.trial_size, cs == 'single'), eeg.trial_labels,
-                                            args.test_proportion, args.random_seed, cs)
-                for ds in datasets:
-                    for clf in classifiers:
-                        score = clf.fit(ds).score(ds)
-                        logging.info("%s, %s, %s, %s, acc: %s" % (subject, derivation, ds.name, clf.name,
-                                                                  score['test_accuracy']))
-                        db.save(merge(vars_args, {'eeg_id': eeg.identifier, 'derivation': derivation}, score))
+            logging.info("Generating datasets for classification")
+            if args.single_channels:
+                datasets = []
+                for ch in channels:
+                    ds = train_test_dataset(eeg.to_clf_format(ch), eeg.trial_labels, args.test_proportion,
+                                            random_seed=args.random_seed, dataset_name="channel_%s" % ch)
+                    datasets.append(ds)
+            else:
+                datasets = [train_test_dataset(eeg.to_clf_format(channels), eeg.trial_labels, args.test_proportion,
+                                               random_seed=args.random_seed,
+                                               dataset_name="channel_%s" % '_'.join(args.channels))]
+
+            for ds in datasets:
+                for clf in classifiers:
+                    score = clf.fit(ds.train, ds.train_labels).score(ds.test, ds.test_labels)
+                    logging.info("%s %s %s %s acc: %.2f" % (subject, derivation, ds.name, clf.name, score['accuracy']))
+                    if args.save:
+                        doc = merge(vars_args, {'eeg_id': eeg.identifier, 'derivation': derivation}, clf.doc, score)
+                        save_to_db(db_clf, doc)
+
     logging.info("Complete")

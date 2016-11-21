@@ -1,4 +1,4 @@
-from classifiers.base_transform import BaseTransform
+from classify.base_transform import BaseTransform
 
 
 class MergeComponents(BaseTransform):

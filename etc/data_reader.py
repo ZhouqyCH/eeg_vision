@@ -18,7 +18,7 @@ def data_reader(file_name, labels='categoryLabels'):
     data = np.array([data[:, k * trial_size:][:, :trial_size].ravel() for k in range(n_channels)])
     assert data.shape == (n_channels, trial_size * n_trials)
     return dict(sampling_rate=mat['Fs'].ravel()[0],
-                data=data,
+                data=data[:, :, np.newaxis],
                 electrodes=electrodes,
                 trial_size=trial_size,
                 subject=mat['sub'].ravel()[0],
