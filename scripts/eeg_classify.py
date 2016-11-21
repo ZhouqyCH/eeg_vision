@@ -6,7 +6,7 @@ from funcy import merge
 
 import settings
 from base.mongo_io import MongoIO
-from classify.classifiers import AnovaLDAClassifier, AnovaSVMClassifier, LDAClassifier, SVMClassifier
+from classify.classifiers import AnovaLDAClassifier, AnovaSVMClassifier, LDAClassifier, SVMClassifier, RFClassifier
 from etc.data_reader import data_reader
 from etc.save_to_db import save_to_db
 from etc.train_test_dataset import train_test_dataset
@@ -18,7 +18,8 @@ CLASSIFIERS = {
     "anova_lda": AnovaLDAClassifier(),
     "anova_svm": AnovaSVMClassifier(),
     "lda": LDAClassifier(),
-    "svm": SVMClassifier()}
+    "svm": SVMClassifier(),
+    "random_forest": RFClassifier}
 
 
 def valid_proportion(p):

@@ -24,6 +24,14 @@ class BaseClassifier(BaseData):
         raise NotImplementedError
 
     @property
+    def n_iter_search(self):
+        return None
+
+    @property
+    def param_dist(self):
+        return {}
+
+    @property
     def doc(self):
         return merge(dict(pipeline_steps=self.pipeline_steps, clf=self.name), self.sklearn_classifier.get_params())
 
