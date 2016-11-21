@@ -19,7 +19,7 @@ CLASSIFIERS = {
     "anova_svm": AnovaSVMClassifier(),
     "lda": LDAClassifier(),
     "svm": SVMClassifier(),
-    "random_forest": RFClassifier}
+    "random_forest": RFClassifier()}
 
 
 def valid_proportion(p):

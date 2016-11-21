@@ -1,5 +1,6 @@
 from funcy import merge
 from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.pipeline import Pipeline
 
 from base.base_data import BaseData
 
@@ -13,7 +14,7 @@ class BaseClassifier(BaseData):
 
     @property
     def pipeline(self):
-        raise NotImplementedError
+        return Pipeline([('classifier', self.sklearn_classifier)])
 
     @property
     def pipeline_steps(self):

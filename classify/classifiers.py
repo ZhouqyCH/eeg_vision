@@ -16,10 +16,6 @@ class LDAClassifier(BaseClassifier):
     def sklearn_classifier(self):
         return LinearDiscriminantAnalysis()
 
-    @property
-    def pipeline(self):
-        return Pipeline([('classifier', self.sklearn_classifier)])
-
 
 class AnovaLDAClassifier(BaseClassifier):
     @property
@@ -36,10 +32,6 @@ class SVMClassifier(BaseClassifier):
     @property
     def sklearn_classifier(self):
         return SVC()
-
-    @property
-    def pipeline(self):
-        return Pipeline([('classifier', self.sklearn_classifier)])
 
 
 class AnovaSVMClassifier(BaseClassifier):
