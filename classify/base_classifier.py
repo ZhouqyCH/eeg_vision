@@ -1,3 +1,7 @@
+import hashlib
+import json
+
+from brainpy.utils import json_default
 from funcy import merge
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.pipeline import Pipeline
@@ -34,7 +38,15 @@ class BaseClassifier(BaseData):
 
     @property
     def doc(self):
-        return merge(dict(pipeline_steps=self.pipeline_steps, clf=self.name), self.sklearn_classifier.get_params())
+        # TODO: replace with pipeline.get_params()
+        clf_par = self.sklearn_classifier.get_params()
+        clf_par.pop('estimator', None)
+        return merge(dict(pipeline_steps=self.pipeline_steps, clf=self.name), clf_par)
+
+    @property
+    def identifier(self):
+        word = json.dumps(self.doc, default=json_default)
+        return hashlib.md5(word).hexdigest()
 
     def fit(self, x, y):
         self._pipeline = self.pipeline.fit(x, y)

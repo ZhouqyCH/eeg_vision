@@ -1,5 +1,3 @@
-from scipy.stats import randint as sp_randint
-
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectKBest
@@ -48,8 +46,7 @@ class AnovaSVMClassifier(BaseClassifier):
 class RFClassifier(BaseClassifier):
     @property
     def param_dist(self):
-        return dict(max_depth=[3, None], max_features=sp_randint(1, 11), min_samples_split=sp_randint(1, 11),
-                    min_samples_leaf=sp_randint(1, 11), bootstrap=[True, False], criterion=["gini", "entropy"],
+        return dict(max_depth=[3, 4, 5, None], bootstrap=[True, False], criterion=["gini", "entropy"],
                     n_estimators=range(20, 120, 10))
 
     @property

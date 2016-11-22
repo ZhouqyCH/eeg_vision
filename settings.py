@@ -9,6 +9,7 @@ MAT_FILES = {s: os.path.join(PATH_TO_MAT_FILES, s.upper()) + ".mat" for s in SUB
 
 MONGO_EEG_COLLECTION = 'coll_eeg'
 MONGO_CLF_COLLECTION = 'coll_clf'
+MONGO_RATES_COLLECTION = 'coll_rates'
 
 MONGO = dict(host='localhost', db='brain', collection=MONGO_EEG_COLLECTION, port=27017, chunk_size=100000,
              drop_collections_on_load=True, transactions_collection='transactions',

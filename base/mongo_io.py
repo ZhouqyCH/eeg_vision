@@ -1,3 +1,4 @@
+import pymongo
 from pymongo import MongoClient
 import settings
 
@@ -30,3 +31,7 @@ class MongoIO(object):
             return cursor
         else:
             return [item for item in cursor]
+
+    def find_max(self, criteria, key):
+        return self.collection.find(criteria).sort(key, pymongo.DESCENDING).limit(1)
+

@@ -5,15 +5,16 @@ from brainpy.eeg import EEG
 from funcy import merge
 
 import settings
-from base.mongo_io import MongoIO
 from classify.classifiers import AnovaLDAClassifier, AnovaSVMClassifier, LDAClassifier, SVMClassifier, RFClassifier
 from etc.data_reader import data_reader
-from etc.save_to_db import save_to_db
+from etc.data_saver import DataSaver
 from etc.train_test_dataset import train_test_dataset
 from utils.logging_utils import logging_reconfig
 
-# TODO: WORK ON TENSOR FLOW
+logging_reconfig()
 
+# TODO: WORK ON TENSOR FLOW
+# TODO: SAVE CLASSIFIERS ON THE DATABASE
 CLASSIFIERS = {
     "anova_lda": AnovaLDAClassifier(),
     "anova_svm": AnovaSVMClassifier(),
@@ -62,10 +63,7 @@ if __name__ == '__main__':
     else:
         classifiers = [CLASSIFIERS[c] for c in args.classifier]
 
-    db_eeg = MongoIO(collection=settings.MONGO_EEG_COLLECTION)
-    db_clf = MongoIO(collection=settings.MONGO_CLF_COLLECTION)
-    vars_args = vars(args)
-    logging_reconfig()
+    data_saver = DataSaver()
 
     for subject, filename in sub2file.iteritems():
         for derivation in derivations:
@@ -80,7 +78,7 @@ if __name__ == '__main__':
                 eeg.get_electric_field(inplace=True)
 
             if args.save:
-                save_to_db(db_eeg, eeg.doc, identifier=eeg.identifier)
+                data_saver.save(settings.MONGO_EEG_COLLECTION, eeg.doc, identifier=eeg.identifier)
                 logging.info("Successfully saved info on the DB: %s %s _id=%s" % (subject, derivation, eeg.identifier))
 
             logging.info("Generating datasets for classification")
@@ -97,10 +95,13 @@ if __name__ == '__main__':
 
             for ds in datasets:
                 for clf in classifiers:
-                    score = clf.fit(ds.train, ds.train_labels).score(ds.test, ds.test_labels)
-                    logging.info("%s %s %s %s acc: %.2f" % (subject, derivation, ds.name, clf.name, score['accuracy']))
+                    data_saver.save(settings.MONGO_CLF_COLLECTION, clf.doc, identifier=clf.identifier)
+                    score_doc = clf.fit(ds.train, ds.train_labels).score(ds.test, ds.test_labels)
+                    logging.info("%s %s %s %s acc: %.2f" % (subject, derivation, ds.name, clf.name, score_doc['accuracy']))
                     if args.save:
-                        doc = merge(vars_args, {'eeg_id': eeg.identifier, 'derivation': derivation}, clf.doc, score)
-                        save_to_db(db_clf, doc)
+                        doc = merge({'subject': subject, 'dataset': ds.name, 'group_size': args.group_size,
+                                     'derivation': derivation, 'eeg_id': eeg.identifier, 'clf_id': clf.identifier},
+                                    score_doc)
+                        data_saver.save(settings.MONGO_RATES_COLLECTION, doc)
 
     logging.info("Complete")
