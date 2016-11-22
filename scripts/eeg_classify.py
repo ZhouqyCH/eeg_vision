@@ -5,7 +5,7 @@ from brainpy.eeg import EEG
 from funcy import merge
 
 import settings
-from classify.classifiers import AnovaLDAClassifier, AnovaSVMClassifier, LDAClassifier, SVMClassifier, RFClassifier
+from classify.classifiers import LDAClassifier, SVMClassifier, LRClassifier
 from etc.data_reader import data_reader
 from etc.data_saver import DataSaver
 from etc.train_test_dataset import train_test_dataset
@@ -15,12 +15,13 @@ logging_reconfig()
 
 # TODO: WORK ON TENSOR FLOW
 # TODO: SAVE CLASSIFIERS ON THE DATABASE
-CLASSIFIERS = {
-    "anova_lda": AnovaLDAClassifier(),
-    "anova_svm": AnovaSVMClassifier(),
-    "lda": LDAClassifier(),
-    "svm": SVMClassifier(),
-    "random_forest": RFClassifier()}
+CLASSIFIERS = \
+    {
+        "lda": LDAClassifier(),
+        "svm": SVMClassifier(),
+        "logreg": LRClassifier(),
+        # "rf": RFClassifier()
+    }
 
 
 def valid_proportion(p):
@@ -33,11 +34,11 @@ def valid_proportion(p):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--subject", nargs="*", choices=settings.SUBJECTS + ['all'], default=['all'])
-    parser.add_argument("--group_size", type=int, default=0)
     parser.add_argument("--channels", nargs="*", choices=map(str, settings.CHANNELS) + ['all'], default=['all'])
-    parser.add_argument("--single_channels", type=bool, default=True)
     parser.add_argument("-d", "--derivation", nargs="*", choices=settings.DERIVATIONS + ['all'], default=['all'])
     parser.add_argument("--classifier", nargs="*", choices=CLASSIFIERS.keys() + ["all"], default=['all'])
+    parser.add_argument("--group_size", type=int, default=0)
+    parser.add_argument("--single_channels", type=bool, default=True)
     parser.add_argument("--test_proportion", type=valid_proportion, default=0.2)
     parser.add_argument("-r", "--random_seed", type=int, default=42)
     parser.add_argument("--save", type=bool, default=True)
@@ -97,11 +98,12 @@ if __name__ == '__main__':
                 for clf in classifiers:
                     data_saver.save(settings.MONGO_CLF_COLLECTION, clf.doc, identifier=clf.identifier)
                     score_doc = clf.fit(ds.train, ds.train_labels).score(ds.test, ds.test_labels)
-                    logging.info("%s %s %s %s acc: %.2f" % (subject, derivation, ds.name, clf.name, score_doc['accuracy']))
+                    logging.info(
+                        "%s %s %s %s acc: %.2f" % (subject, derivation, ds.name, clf.name, score_doc['accuracy']))
                     if args.save:
                         doc = merge({'subject': subject, 'dataset': ds.name, 'group_size': args.group_size,
                                      'derivation': derivation, 'eeg_id': eeg.identifier, 'clf_id': clf.identifier},
                                     score_doc)
-                        data_saver.save(settings.MONGO_RATES_COLLECTION, doc)
+                        data_saver.save(settings.MONGO_ACC_COLLECTION, doc)
 
     logging.info("Complete")

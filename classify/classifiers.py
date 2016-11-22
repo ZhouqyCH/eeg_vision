@@ -1,9 +1,6 @@
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import f_regression
-from sklearn.grid_search import RandomizedSearchCV
-from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 
 from classify.base_classifier import BaseClassifier
@@ -11,36 +8,28 @@ from classify.base_classifier import BaseClassifier
 
 class LDAClassifier(BaseClassifier):
     @property
-    def sklearn_classifier(self):
+    def classifier(self):
         return LinearDiscriminantAnalysis()
 
 
-class AnovaLDAClassifier(BaseClassifier):
+class LRClassifier(BaseClassifier):
     @property
-    def sklearn_classifier(self):
-        return LinearDiscriminantAnalysis()
+    def param_dist(self):
+        return dict(C=[0.5, 1.0, 5.], penalty=['l1', 'l2'])
 
     @property
-    def pipeline(self):
-        anova_filter = SelectKBest(f_regression, k=20)
-        return Pipeline([('anova', anova_filter), ('classifier', self.sklearn_classifier)])
+    def classifier(self):
+        return LogisticRegression(random_state=self.random_state)
 
 
 class SVMClassifier(BaseClassifier):
     @property
-    def sklearn_classifier(self):
-        return SVC()
-
-
-class AnovaSVMClassifier(BaseClassifier):
-    @property
-    def sklearn_classifier(self):
-        return SVC()
+    def param_dist(self):
+        return dict(C=[0.5, 1.0, 5.], kernel=['linear', 'rbf'], shrinking=[True, False], probability=[True, False])
 
     @property
-    def pipeline(self):
-        anova_filter = SelectKBest(f_regression, k=20)
-        return Pipeline([('anova', anova_filter), ('classifier', self.sklearn_classifier)])
+    def classifier(self):
+        return SVC(random_state=self.random_state)
 
 
 class RFClassifier(BaseClassifier):
@@ -50,10 +39,5 @@ class RFClassifier(BaseClassifier):
                     n_estimators=range(20, 120, 10))
 
     @property
-    def n_iter_search(self):
-        return 20
-
-    @property
-    def sklearn_classifier(self):
-        return RandomizedSearchCV(RandomForestClassifier(), param_distributions=self.param_dist,
-                                  n_iter=self.n_iter_search)
+    def classifier(self):
+        return RandomForestClassifier(random_state=self.random_state)

@@ -1,16 +1,16 @@
-import pymongo
+from funcy import merge
 from pymongo import MongoClient
+
 import settings
 
 
 class MongoIO(object):
-    def __init__(self, collection=None):
-        self.conn = {'host': settings.MONGO['host'], 'port': settings.MONGO['port']}
+    def __init__(self, **kwargs):
+        options = merge(settings.MONGO_DEFAULT, kwargs)
+        self.conn = {'host': options['host'], 'port': options['port']}
         self.client = MongoClient(**self.conn)
-        self.db = self.client[settings.MONGO['db']]
-        if not collection:
-            collection = settings.MONGO['collection']
-        self.collection = self.db[collection]
+        self.db = self.client[options['db']]
+        self.collection = self.db[options['collection']]
 
     def save(self, doc):
         return self.collection.insert(doc)
@@ -31,7 +31,3 @@ class MongoIO(object):
             return cursor
         else:
             return [item for item in cursor]
-
-    def find_max(self, criteria, key):
-        return self.collection.find(criteria).sort(key, pymongo.DESCENDING).limit(1)
-

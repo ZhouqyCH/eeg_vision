@@ -3,6 +3,7 @@ import json
 
 from brainpy.utils import json_default
 from funcy import merge
+from sklearn.grid_search import RandomizedSearchCV
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.pipeline import Pipeline
 
@@ -17,20 +18,29 @@ class BaseClassifier(BaseData):
         self._pipeline = None
 
     @property
+    def transformers(self):
+        return []
+
+    @property
     def pipeline(self):
-        return Pipeline([('classifier', self.sklearn_classifier)])
+        if self.param_dist:
+            classifier = RandomizedSearchCV(self.classifier, param_distributions=self.param_dist,
+                                            n_iter=self.n_iter_search, random_state=self.random_state)
+        else:
+            classifier = self.classifier
+        return Pipeline(self.transformers + [('classifier', classifier)])
 
     @property
     def pipeline_steps(self):
         return ','.join(map(lambda x: x[0], self.pipeline.steps))
 
     @property
-    def sklearn_classifier(self):
-        raise NotImplementedError
+    def n_iter_search(self):
+        return 20
 
     @property
-    def n_iter_search(self):
-        return None
+    def classifier(self):
+        raise NotImplementedError
 
     @property
     def param_dist(self):
@@ -38,8 +48,7 @@ class BaseClassifier(BaseData):
 
     @property
     def doc(self):
-        # TODO: replace with pipeline.get_params()
-        clf_par = self.sklearn_classifier.get_params()
+        clf_par = self.pipeline.get_params()
         clf_par.pop('estimator', None)
         return merge(dict(pipeline_steps=self.pipeline_steps, clf=self.name), clf_par)
 
