@@ -1,9 +1,4 @@
-import hashlib
-import json
-
-from brainpy.utils import json_default
-from funcy import merge
-from sklearn.grid_search import RandomizedSearchCV
+from sklearn.grid_search import RandomizedSearchCV, ParameterGrid, GridSearchCV
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.pipeline import Pipeline
 
@@ -24,8 +19,12 @@ class BaseClassifier(BaseData):
     @property
     def pipeline(self):
         if self.param_dist:
-            classifier = RandomizedSearchCV(self.classifier, param_distributions=self.param_dist,
-                                            n_iter=self.n_iter_search, random_state=self.random_state)
+            grid_size = len(ParameterGrid(self.param_dist))
+            if grid_size < self.n_iter_search:
+                classifier = GridSearchCV(self.classifier, self.param_dist)
+            else:
+                classifier = RandomizedSearchCV(self.classifier, param_distributions=self.param_dist,
+                                                n_iter=self.n_iter_search, random_state=self.random_state)
         else:
             classifier = self.classifier
         return Pipeline(self.transformers + [('classifier', classifier)])
@@ -48,14 +47,11 @@ class BaseClassifier(BaseData):
 
     @property
     def doc(self):
-        clf_par = self.pipeline.get_params()
-        clf_par.pop('estimator', None)
-        return merge(dict(pipeline_steps=self.pipeline_steps, clf=self.name), clf_par)
-
-    @property
-    def identifier(self):
-        word = json.dumps(self.doc, default=json_default)
-        return hashlib.md5(word).hexdigest()
+        d = self.classifier.get_params()
+        d.pop('estimator', None)
+        d['pipeline_steps'] = self.pipeline_steps
+        d['classifier'] = self.name
+        return d
 
     def fit(self, x, y):
         self._pipeline = self.pipeline.fit(x, y)

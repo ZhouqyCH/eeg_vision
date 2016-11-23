@@ -38,10 +38,12 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--derivation", nargs="*", choices=settings.DERIVATIONS + ['all'], default=['all'])
     parser.add_argument("--classifier", nargs="*", choices=CLASSIFIERS.keys() + ["all"], default=['all'])
     parser.add_argument("--group_size", type=int, default=0)
-    parser.add_argument("--single_channels", type=bool, default=True)
+    parser.add_argument("--single_channel", type=bool, default=True)
     parser.add_argument("--test_proportion", type=valid_proportion, default=0.2)
     parser.add_argument("-r", "--random_seed", type=int, default=42)
-    parser.add_argument("--save", type=bool, default=True)
+    parser.add_argument("--eeg_collection", type=str, default=settings.MONGO_EEG_COLLECTION)
+    parser.add_argument("--clf_collection", type=str, default=settings.MONGO_CLF_COLLECTION)
+    parser.add_argument("--acc_collection", type=str, default=settings.MONGO_ACC_COLLECTION)
     args = parser.parse_args()
 
     if 'all' in args.subject:
@@ -78,12 +80,11 @@ if __name__ == '__main__':
             elif derivation == 'electric_field':
                 eeg.get_electric_field(inplace=True)
 
-            if args.save:
-                data_saver.save(settings.MONGO_EEG_COLLECTION, eeg.doc, identifier=eeg.identifier)
-                logging.info("Successfully saved info on the DB: %s %s _id=%s" % (subject, derivation, eeg.identifier))
+            eeg_id = data_saver.save(args.eeg_collection, doc=eeg.doc)
+            logging.info("EEG info was saved in the DB: %s %s: %s _id=%s"
+                         % (subject, derivation, args.eeg_collection, eeg_id))
 
-            logging.info("Generating datasets for classification")
-            if args.single_channels:
+            if args.single_channel:
                 datasets = []
                 for ch in channels:
                     ds = train_test_dataset(eeg.to_clf_format(ch), eeg.trial_labels, args.test_proportion,
@@ -96,14 +97,16 @@ if __name__ == '__main__':
 
             for ds in datasets:
                 for clf in classifiers:
-                    data_saver.save(settings.MONGO_CLF_COLLECTION, clf.doc, identifier=clf.identifier)
+                    clf_id = data_saver.save(args.clf_collection, doc=clf.doc)
+                    logging.info("Classifier parameters were saved in the DB: %s %s %s: %s _id=%s"
+                                 % (subject, derivation, clf.name, args.clf_collection, clf_id))
+
                     score_doc = clf.fit(ds.train, ds.train_labels).score(ds.test, ds.test_labels)
-                    logging.info(
-                        "%s %s %s %s acc: %.2f" % (subject, derivation, ds.name, clf.name, score_doc['accuracy']))
-                    if args.save:
-                        doc = merge({'subject': subject, 'dataset': ds.name, 'group_size': args.group_size,
-                                     'derivation': derivation, 'eeg_id': eeg.identifier, 'clf_id': clf.identifier},
-                                    score_doc)
-                        data_saver.save(settings.MONGO_ACC_COLLECTION, doc)
+                    doc = merge({'subject': subject, 'dataset': ds.name, 'group_size': args.group_size,
+                                 'derivation': derivation, 'eeg_id': eeg_id, 'clf_id': clf_id}, score_doc)
+                    acc_id = data_saver.save(args.acc_collection, doc=doc)
+                    logging.info("Classification result was saved in the DB: %s %s %s %s acc: %.2f: %s _id=%s"
+                                 % (subject, derivation, ds.name, clf.name, score_doc['accuracy'], args.acc_collection,
+                                    acc_id))
 
     logging.info("Complete")

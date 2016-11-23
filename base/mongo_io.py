@@ -13,7 +13,7 @@ class MongoIO(object):
         self.collection = self.db[options['collection']]
 
     def save(self, doc):
-        return self.collection.insert(doc)
+        return self.collection.insert_one(doc).inserted_id
 
     def remove(self, id):
         return self.collection.remove(id)
