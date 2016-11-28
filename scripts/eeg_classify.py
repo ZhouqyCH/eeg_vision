@@ -5,7 +5,7 @@ from brainpy.eeg import EEG
 from funcy import merge
 
 import settings
-from classify.classifiers import LDAClassifier, SVMClassifier, LRClassifier
+from classify.classifiers import LDAClassifier, SVMClassifier, LRClassifier, RFClassifier
 from etc.data_reader import data_reader
 from etc.data_saver import DataSaver
 from etc.train_test_dataset import train_test_dataset
@@ -20,7 +20,7 @@ CLASSIFIERS = \
         "lda": LDAClassifier(),
         "svm": SVMClassifier(),
         "logreg": LRClassifier(),
-        # "rf": RFClassifier()
+        "rf": RFClassifier()
     }
 
 
@@ -44,6 +44,7 @@ if __name__ == '__main__':
     parser.add_argument("--eeg_collection", type=str, default=settings.MONGO_EEG_COLLECTION)
     parser.add_argument("--clf_collection", type=str, default=settings.MONGO_CLF_COLLECTION)
     parser.add_argument("--acc_collection", type=str, default=settings.MONGO_ACC_COLLECTION)
+    parser.add_argument("--lambda_value", type=float, default=1e-2)
     args = parser.parse_args()
 
     if 'all' in args.subject:
@@ -71,7 +72,7 @@ if __name__ == '__main__':
     for subject, filename in sub2file.iteritems():
         for derivation in derivations:
 
-            eeg = EEG(data_reader=data_reader).read(filename)
+            eeg = EEG(data_reader=data_reader, lambda_value=args.lambda_value).read(filename)
             if args.group_size:
                 eeg.average_trials(args.group_size, inplace=True)
 
