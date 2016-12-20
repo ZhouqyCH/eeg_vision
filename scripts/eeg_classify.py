@@ -8,13 +8,12 @@ import settings
 from classify.classifiers import LDAClassifier, SVMClassifier, LRClassifier, RFClassifier
 from etc.data_reader import data_reader
 from etc.data_saver import DataSaver
-from etc.train_test_dataset import train_test_dataset
+from etc.dataset import train_test_dataset
 from utils.logging_utils import logging_reconfig
 
 logging_reconfig()
 
 # TODO: WORK ON TENSOR FLOW
-# TODO: SAVE CLASSIFIERS ON THE DATABASE
 CLASSIFIERS = \
     {
         "lda": LDAClassifier(),
@@ -27,8 +26,7 @@ CLASSIFIERS = \
 def valid_proportion(p):
     if not isinstance(p, float) or p <= 0 or p >= 1:
         raise argparse.ArgumentTypeError("Proportion must be a float number greater than 0 and less than 1")
-    else:
-        return p
+    return p
 
 
 if __name__ == '__main__':

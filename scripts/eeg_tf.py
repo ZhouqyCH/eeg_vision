@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 
 import settings
-from etc.eeg_dataset import build_data_sets
+from etc.dataset import build_data_sets
 
 
 def weight_variable(shape):
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     file_name = os.path.join(settings.PATH_TO_MAT_FILES, args.subject.upper() + ".mat")
-    ds = build_data_sets(file_name, avg_group_size=5, derivation='ef', random_state=42, test_size=0.2)
+    ds = build_data_sets(file_name, avg_group_size=5, derivation='electric_field', random_state=42, test_proportion=0.2)
 
     # The input x will consist of a 2d tensor of floating point numbers
     x = tf.placeholder(tf.float32, shape=[None, ds.train.n_channels, ds.train.trial_size, ds.train.n_comps])
