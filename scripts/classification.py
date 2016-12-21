@@ -13,7 +13,6 @@ from utils.logging_utils import logging_reconfig
 
 logging_reconfig()
 
-# TODO: WORK ON TENSOR FLOW
 CLASSIFIERS = \
     {
         "lda": LDAClassifier(),

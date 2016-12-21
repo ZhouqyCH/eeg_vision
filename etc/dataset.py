@@ -94,14 +94,21 @@ def one_hot_encoder(arr):
 # TODO: RESHAPE DATA FOR POTENTIAL AND LAPLACIAN
 def build_data_sets(file_name, name="no_name", avg_group_size=None, derivation=None, random_state=42, test_proportion=0.2):
     eeg = EEG(data_reader=data_reader).read(file_name)
+    n_channels = eeg.n_channels
     if avg_group_size:
         eeg.average_trials(avg_group_size, inplace=True)
+    derivation = derivation or 'potential'
     if derivation.lower() == "electric_field":
         eeg.get_electric_field(inplace=True)
         eeg.data = eeg.data.reshape(eeg.n_channels, eeg.trial_size, -1, 3).transpose((2, 0, 1, 3))
     elif derivation.lower() == 'laplacian':
         eeg.get_laplacian(inplace=True)
+    n_classes = len(np.unique(eeg.trial_labels))
     labels = one_hot_encoder(eeg.trial_labels)
     X_train, X_test, y_train, y_test = train_test_split(eeg.data, labels, test_size=test_proportion,
                                                         random_state=random_state)
-    return type('DataSet', (), {'train': EEGDataSetBatch(X_train, y_train), 'test': EEGDataSetBatch(X_test, y_test)})
+    return type('DataSet', (), {'train': EEGDataSetBatch(X_train, y_train), 'test': EEGDataSetBatch(X_test, y_test),
+                                'trial_size': eeg.trial_size, 'name': name, 'derivation': derivation,
+                                'avg_group_size': avg_group_size, 'random_state': random_state,
+                                'test_proportion': test_proportion, 'n_channels': n_channels,
+                                'n_comps': eeg.n_comps, 'n_classes': n_classes})

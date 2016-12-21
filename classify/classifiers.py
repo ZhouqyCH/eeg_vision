@@ -3,7 +3,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 
-from classify.base_classifier import BaseClassifier
+from classification.base_classifier import BaseClassifier
 
 
 class LDAClassifier(BaseClassifier):
