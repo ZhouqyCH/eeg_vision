@@ -20,11 +20,6 @@ if __name__ == '__main__':
     parser.add_argument("--dropout", type=float, default=0.75)
     args = parser.parse_args()
 
-    design = dict(output=map(int, args.design_output.split('-')),
-                  wc1=map(int, args.design_wc1.split('-')),
-                  wc2=map(int, args.design_wc2.split('-')),
-                  wd1=map(int, args.design_wd1.split('*')))
-
     file_name = os.path.join(settings.PATH_TO_MAT_FILES, args.subject.upper() + ".mat")
     ds = build_data_sets(file_name, avg_group_size=args.avg_group_size, derivation=args.derivation,
                          random_state=args.seed, test_proportion=args.test_proportion)
