@@ -110,6 +110,6 @@ if __name__ == '__main__':
             train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 
         print("test accuracy %g" % accuracy.eval(feed_dict={
-            x: ds.test.data, y_: ds.test.labels, keep_prob: 1.0}))
+            x: ds.test.samples, y_: ds.test.labels, keep_prob: 1.0}))
 
     print "Complete."

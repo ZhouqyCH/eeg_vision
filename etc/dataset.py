@@ -107,7 +107,8 @@ def build_data_sets(file_name, name="no_name", avg_group_size=None, derivation=N
     labels = one_hot_encoder(eeg.trial_labels)
     X_train, X_test, y_train, y_test = train_test_split(eeg.data, labels, test_size=test_proportion,
                                                         random_state=random_state)
-    return type('DataSet', (), {'train': EEGDataSetBatch(X_train, y_train), 'test': EEGDataSetBatch(X_test, y_test),
+    return type('DataSet', (), {'train': EEGDataSetBatch(X_train, y_train),
+                                'test': type('Dataset', (), {'samples': X_test, 'labels': y_test}),
                                 'trial_size': eeg.trial_size, 'name': name, 'derivation': derivation,
                                 'avg_group_size': avg_group_size, 'random_state': random_state,
                                 'test_proportion': test_proportion, 'n_channels': n_channels,
