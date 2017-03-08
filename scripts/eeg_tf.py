@@ -115,3 +115,7 @@ if __name__ == '__main__':
             x: ds.test.samples, y_: ds.test.labels, keep_prob: 1.0}))
 
     print "Complete."
+
+
+# E tensorflow/core/client/tensor_c_api.cc:485] Input to reshape is a tensor with 793600 values, but the requested shape requires a multiple of 3136
+# 	 [[Node: Reshape = Reshape[T=DT_FLOAT, _device="/job:localhost/replica:0/task:0/cpu:0"](MaxPool_1, Reshape/shape)]]
