@@ -33,7 +33,7 @@ if __name__ == '__main__':
     file_name = os.path.join(settings.PATH_TO_MAT_FILES, args.subject.upper() + ".mat")
     ds = build_data_sets(file_name, avg_group_size=5, derivation='electric_field', random_state=42, test_proportion=0.2)
 
-    # The input x will consist of a tensor of floating point numbers
+    # The input x will consist of a tensor of floating point numbers of shape (?, 124, 16, 3)
     x = tf.placeholder(tf.float32, shape=[None, ds.train.n_channels, ds.train.trial_size, ds.train.n_comps])
     # The target output classes y_ will consist of a 2d tensor, where each row is a one-hot 6-dimensional vector
     # indicating which digit class (zero through 5) the corresponding trial belongs to
@@ -46,9 +46,9 @@ if __name__ == '__main__':
     W_conv1 = weight_variable([5, 5, 3, 32])
     # a bias vector with a component for each output channel
     b_conv1 = bias_variable([32])
-    # Apply the layer by convolving x with the weight tensor, add the bias, apply the ReLU function, and finally max
-    # pool.
+    # Apply the layer by convolving x with the weight tensor, add the bias, and apply the ReLU function
     h_conv1 = tf.nn.relu(conv2d(x, W_conv1) + b_conv1)
+    # Finally max pool with a 2x2 patch. The result has shape (?, 62, 8, 32)
     h_pool1 = max_pool_2x2(h_conv1)
 
     # Second Convolutional Layer.
@@ -56,7 +56,9 @@ if __name__ == '__main__':
     W_conv2 = weight_variable([5, 5, 32, 64])
     b_conv2 = bias_variable([64])
 
+    # h_conv2 has dimension (?, 62, 8, 64)
     h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
+    # h_pool2 has dimension (?, 31, 4, 64)
     h_pool2 = max_pool_2x2(h_conv2)
 
     # Densely Connected Layer. The image size has been reduced to 7x7. A fully-connected layer with 1024 neurons is
