@@ -1,10 +1,14 @@
 import argparse
 import os
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
 
 import tensorflow as tf
 
 import settings
-from etc.dataset import build_data_sets
+from data_tools.data_tools import build_data_sets
 
 
 def weight_variable(shape):
@@ -31,9 +35,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     file_name = os.path.join(settings.PATH_TO_MAT_FILES, args.subject.upper() + ".mat")
-    ds = build_data_sets(file_name, avg_group_size=5, derivation='electric_field', random_state=42, test_proportion=0.2)
+    ds = build_data_sets(file_name, avg_group_size=1, derivation='electric_field', random_state=42, test_proportion=0.2)
 
-    # The input x will consist of a tensor of floating point numbers of shape (?, 124, 16, 3)
+    # The input x will consist of a tensor of floating point numbers of shape (?, 124, 32, 3)
     x = tf.placeholder(tf.float32, shape=[None, ds.train.n_channels, ds.train.trial_size, ds.train.n_comps])
     # The target output classes y_ will consist of a 2d tensor, where each row is a one-hot 6-dimensional vector
     # indicating which digit class (zero through 5) the corresponding trial belongs to
@@ -56,18 +60,18 @@ if __name__ == '__main__':
     W_conv2 = weight_variable([5, 5, 32, 64])
     b_conv2 = bias_variable([64])
 
-    # h_conv2 has dimension (?, 62, 8, 64)
+    # h_conv2 has dimension (?, 62, 16, 64)
     h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-    # h_pool2 has dimension (?, 31, 4, 64)
+    # h_pool2 has dimension (?, 31, 8, 64)
     h_pool2 = max_pool_2x2(h_conv2)
 
-    # Densely Connected Layer. The image size has been reduced to 7x7. A fully-connected layer with 1024 neurons is
+    # Densely Connected Layer. The image size has been reduced to 31x4. A fully-connected layer with 1024 neurons is
     # added to allow processing on the entire image. The tensor from the pooling layer is reshaped into a batch of
     # vectors, multiplied by a weight matrix, added to a bias, and applied to a ReLU
-    W_fc1 = weight_variable([7 * 7 * 64, 1024])
+    W_fc1 = weight_variable([31 * 8 * 64, 1024])
     b_fc1 = bias_variable([1024])
 
-    h_pool2_flat = tf.reshape(h_pool2, [-1, 7 * 7 * 64])
+    h_pool2_flat = tf.reshape(h_pool2, [-1, 31 * 8 * 64])
     h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
     # Dropout. To reduce overfitting, we will apply dropout before the readout layer. We create a placeholder for the
@@ -100,6 +104,7 @@ if __name__ == '__main__':
     sess = tf.Session()
     sess.run(tf.initialize_all_variables())
 
+    history = pd.DataFrame([])
     with sess.as_default():
         # Train the model by repeatedly running train_step.
         max_iter = 20000
@@ -109,15 +114,16 @@ if __name__ == '__main__':
             if i % 100 == 0:
                 train_accuracy = accuracy.eval(feed_dict={
                     x: batch[0], y_: batch[1], keep_prob: 1.0})
-                print("step %d, training accuracy %g" % (i, train_accuracy))
-
+                print("%s: step %d - training accuracy: %g" % (datetime.now().isoformat(), i+1, train_accuracy))
+                history = history.append([{'iteration': str(i + 1), 'accuracy': train_accuracy}], ignore_index=True)
+                if np.isclose(train_accuracy, 1.0):
+                    break
             train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 
-        print("test accuracy %g" % accuracy.eval(feed_dict={
-            x: ds.test.samples, y_: ds.test.labels, keep_prob: 1.0}))
+        test_accuracy = accuracy.eval(feed_dict={x: ds.test.samples, y_: ds.test.labels, keep_prob: 1.0})
+        print("%s: test accuracy %g" % (datetime.now().isoformat(), test_accuracy))
+        history = history.append([{'iteration': 'test', 'accuracy': test_accuracy}], ignore_index=True)
+        csv_file_name = 'eeg_tf0.log-%s' % datetime.now().isoformat()
+        history.to_csv(csv_file_name, index=False)
 
     print "Complete."
-
-
-# E tensorflow/core/client/tensor_c_api.cc:485] Input to reshape is a tensor with 793600 values, but the requested shape requires a multiple of 3136
-# 	 [[Node: Reshape = Reshape[T=DT_FLOAT, _device="/job:localhost/replica:0/task:0/cpu:0"](MaxPool_1, Reshape/shape)]]

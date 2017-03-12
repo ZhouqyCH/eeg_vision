@@ -3,7 +3,7 @@ from sklearn.cross_validation import train_test_split
 
 from brainpy.eeg import EEG
 
-from etc.data_reader import data_reader
+from data_reader import data_reader
 
 
 class SimpleDataset(object):
@@ -23,7 +23,6 @@ def train_test_dataset(data, labels, test_proportion, dataset_name="no_name", ra
 
 class EEGDataSetBatch(object):
     def __init__(self, data, labels):
-        self._eeg = EEG()
         self._cycles_completed = 0
         self._index_in_cycle = 0
         self._data = data

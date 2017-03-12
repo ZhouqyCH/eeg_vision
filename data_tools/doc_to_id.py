@@ -1,7 +1,7 @@
 import hashlib
 import json
 
-from etc.json_default import json_default
+from data_tools.json_default import json_default
 
 
 def doc_to_id(doc):

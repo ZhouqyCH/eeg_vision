@@ -1,6 +1,6 @@
 from base.mongo_io import MongoIO
-from etc.doc_to_id import doc_to_id
-from etc.json_default import json_default
+from data_tools.doc_to_id import doc_to_id
+from data_tools.json_default import json_default
 
 
 class DataSaver(object):

@@ -3,7 +3,7 @@ import os
 
 import settings
 from dnn.dnn_models import DNN1
-from etc.dataset import build_data_sets
+from data_tools.data_tools import build_data_sets
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

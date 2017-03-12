@@ -6,9 +6,9 @@ from funcy import merge
 
 import settings
 from classify.classifiers import LDAClassifier, SVMClassifier, LRClassifier, RFClassifier
-from etc.data_reader import data_reader
-from etc.data_saver import DataSaver
-from etc.dataset import train_test_dataset
+from data_tools.data_reader import data_reader
+from data_tools.data_saver import DataSaver
+from data_tools.data_tools import train_test_dataset
 from utils.logging_utils import logging_reconfig
 
 logging_reconfig()
