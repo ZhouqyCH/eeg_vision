@@ -16,6 +16,7 @@ MONGO_TEST_COLLECTION = 'coll_test'
 MONGO_EEG_COLLECTION = 'coll_eeg'
 MONGO_CLF_COLLECTION = 'coll_clf'
 MONGO_ACC_COLLECTION = 'coll_acc'
+MONGO_DNN_COLLECTION = 'coll_dnn'
 
 MONGO_DEFAULT = dict(host='localhost', db=MONGO_DB, collection=MONGO_TEST_COLLECTION, port=MONGO_PORT,
                      chunk_size=MONGO_CHUNK_SIZE, drop_collections_on_load=True, transactions_collection='transactions',
