@@ -3,7 +3,7 @@ from sklearn.cross_validation import train_test_split
 
 from brainpy.eeg import EEG
 
-from data_reader import data_reader
+from data_reader import matlab_data_reader
 
 
 class SimpleDataset(object):
@@ -92,7 +92,7 @@ def one_hot_encoder(arr):
 
 # TODO: RESHAPE DATA FOR POTENTIAL AND LAPLACIAN
 def build_data_sets(file_name, name="no_name", avg_group_size=None, derivation=None, random_state=42, test_proportion=0.2):
-    eeg = EEG(data_reader=data_reader).read(file_name)
+    eeg = EEG(data_reader=matlab_data_reader).read(file_name)
     n_channels = eeg.n_channels
     if avg_group_size:
         eeg.average_trials(avg_group_size, inplace=True)

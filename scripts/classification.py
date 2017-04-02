@@ -6,7 +6,7 @@ from funcy import merge
 
 import settings
 from classify.classifiers import LDAClassifier, SVMClassifier, LRClassifier, RFClassifier
-from data_tools.data_reader import data_reader
+from data_tools.data_reader import matlab_data_reader
 from data_tools.data_saver import DataSaver
 from data_tools.data_tools import train_test_dataset
 from utils.logging_utils import logging_reconfig
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     for subject, filename in sub2file.iteritems():
         for derivation in derivations:
 
-            eeg = EEG(data_reader=data_reader, lambda_value=args.lambda_value).read(filename)
+            eeg = EEG(data_reader=matlab_data_reader, lambda_value=args.lambda_value).read(filename)
             if args.group_size:
                 eeg.average_trials(args.group_size, inplace=True)
 

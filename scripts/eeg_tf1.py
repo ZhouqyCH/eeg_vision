@@ -1,5 +1,7 @@
 import logging
+import traceback
 import os
+import sys
 from datetime import datetime
 
 import numpy as np
@@ -142,7 +144,12 @@ if __name__ == '__main__':
         logging.info("CLASSIFICATION TASK FOR SUBJECT %s - %s", subject, filename)
         doc = main(filename)
         doc.update({'subject': subject})
-        doc_id = data_saver.save(settings.MONGO_DNN_COLLECTION, doc=doc)
+        try:
+            doc_id = data_saver.save(settings.MONGO_DNN_COLLECTION, doc=doc)
+        except Exception, e:
+            logging.error("FAILED TO SAVE RESULT FOR SUBJECT %s IN THE DATABASE:\n%s\n%s", subject, e,
+                          traceback.format_exc())
+            sys.exit(1)
         logging.info("Result save into doc #%s", doc_id)
         logging.info("-------------------------------------------------------")
     logging.info("Complete.")

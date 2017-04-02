@@ -23,7 +23,10 @@ class DataSaver(object):
             else:
                 doc["_id"] = doc_to_id(doc)
         if replace_existing:
-            coll.remove(doc["_id"])
+            try:
+                coll.remove(doc["_id"])
+            except Exception, e:
+                pass
         elif coll.findOne({"_id": doc["_id"]}):
             return doc["_id"]
         for key in doc.keys():

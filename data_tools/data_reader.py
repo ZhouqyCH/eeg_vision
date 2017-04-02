@@ -4,7 +4,7 @@ import numpy as np
 from scipy.io import loadmat
 
 
-def data_reader(file_name, labels='categoryLabels'):
+def matlab_data_reader(file_name, labels='categoryLabels'):
     import pandas as pd
     path = os.path.split(file_name)[0]
     elect_file = os.path.join(path, "elect.csv")

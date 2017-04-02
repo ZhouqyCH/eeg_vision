@@ -5,7 +5,7 @@ from brainpy.eeg import EEG
 from funcy import merge
 
 import settings
-from data_tools.data_reader import data_reader
+from data_tools.data_reader import matlab_data_reader
 from data_tools.data_saver import DataSaver
 from data_tools.data_tools import train_test_dataset
 from utils.logging_utils import logging_reconfig
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     data_saver = DataSaver()
 
     for subject, filename in sub2file.iteritems():
-        eeg = EEG(data_reader=data_reader, lambda_value=args.lambda_value).read(filename)
+        eeg = EEG(data_reader=matlab_data_reader, lambda_value=args.lambda_value).read(filename)
         eeg.get_electric_field(inplace=True)
         eeg_id = data_saver.save(args.eeg_collection, doc=eeg.doc)
         logging.info("EEG info was saved in the DB: %s %s: %s _id=%s"

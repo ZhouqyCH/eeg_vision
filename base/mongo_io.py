@@ -7,8 +7,7 @@ import settings
 class MongoIO(object):
     def __init__(self, **kwargs):
         options = merge(settings.MONGO_DEFAULT, kwargs)
-        self.conn = {'host': options['host'], 'port': options['port']}
-        self.client = MongoClient(**self.conn)
+        self.client = MongoClient(host=options['host'], port=options['port'], connect=False)
         self.db = self.client[options['db']]
         self.collection = self.db[options['collection']]
 
