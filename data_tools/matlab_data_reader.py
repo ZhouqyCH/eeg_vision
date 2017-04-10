@@ -1,11 +1,11 @@
 import os
 
 import numpy as np
+import pandas as pd
 from scipy.io import loadmat
 
 
 def matlab_data_reader(file_name, labels='categoryLabels'):
-    import pandas as pd
     path = os.path.split(file_name)[0]
     elect_file = os.path.join(path, "elect.csv")
     electrodes = pd.read_csv(elect_file, index_col=False).to_dict(orient="records")
@@ -25,3 +25,7 @@ def matlab_data_reader(file_name, labels='categoryLabels'):
                 trial_labels=mat[labels].ravel(),
                 der_code=0,
                 group_size=1)
+
+
+def matlab_concat_labels(filenames, labels='categoryLabels'):
+    return reduce(lambda a, b: a + loadmat(b)[labels].ravel().tolist(), filenames, [])

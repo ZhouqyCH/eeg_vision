@@ -3,7 +3,8 @@ from sklearn.cross_validation import train_test_split
 
 from brainpy.eeg import EEG
 
-from data_reader import matlab_data_reader
+from .utils import one_hot_encoder
+from matlab_data_reader import matlab_data_reader
 
 
 class SimpleDataset(object):
@@ -81,13 +82,6 @@ class EEGDataSetBatch(object):
             assert batch_size <= self.n_trials
         end = self._index_in_cycle
         return self._data[start:end], self._labels[start:end]
-
-
-def one_hot_encoder(arr):
-    levels = np.unique(arr)
-    mat = np.eye(len(levels))
-    d = {v: mat[:, j] for j, v in enumerate(levels)}
-    return np.array([d[v] for v in arr])
 
 
 # TODO: RESHAPE DATA FOR POTENTIAL AND LAPLACIAN

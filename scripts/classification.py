@@ -6,7 +6,7 @@ from funcy import merge
 
 import settings
 from classify.classifiers import LDAClassifier, SVMClassifier, LRClassifier, RFClassifier
-from data_tools.data_reader import matlab_data_reader
+from data_tools.matlab_data_reader import matlab_data_reader
 from data_tools.data_saver import DataSaver
 from data_tools.data_tools import train_test_dataset
 from utils.logging_utils import logging_reconfig
