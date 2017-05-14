@@ -61,10 +61,10 @@ def main(file_name):
 
     # Second Convolutional Layer.
     # Stacks a second layer that provides 64 features for each 5x5 patch
-    result.update({'W_conv2': [5, 5, 32, 48]})
-    W_conv2 = weight_variable([5, 5, 32, 48])
-    b_conv2 = bias_variable([48])
-    logging.info("Second convolutional layer: [5, 5, 32, 48]")
+    result.update({'W_conv2': [5, 5, 32, 64]})
+    W_conv2 = weight_variable([5, 5, 32, 64])
+    b_conv2 = bias_variable([64])
+    logging.info("Second convolutional layer: [5, 5, 32, 64]")
 
     # h_conv2 has dimension (?, 62, 16, 64)
     h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
@@ -74,12 +74,12 @@ def main(file_name):
     # Densely Connected Layer. The image size has been reduced to 31x4. A fully-connected layer with 1024 neurons is
     # added to allow processing on the entire image. The tensor from the pooling layer is reshaped into a batch of
     # vectors, multiplied by a weight matrix, added to a bias, and applied to a ReLU
-    result.update({'W_fc1': [31 * 8 * 48, 200]})
-    W_fc1 = weight_variable([31 * 8 * 48, 200])
-    logging.info("First densely-condensed layer: [31 * 8 * 48, 200]")
-    b_fc1 = bias_variable([200])
+    result.update({'W_fc1': [31 * 8 * 64, 1024]})
+    W_fc1 = weight_variable([31 * 8 * 64, 1024])
+    logging.info("First densely-condensed layer: [31 * 8 * 64, 1024]")
+    b_fc1 = bias_variable([1024])
 
-    h_pool2_flat = tf.reshape(h_pool2, [-1, 31 * 8 * 48])
+    h_pool2_flat = tf.reshape(h_pool2, [-1, 31 * 8 * 64])
     h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
     # Dropout. TRo reduce overfitting, we will apply dropout before the readout layer. We create a placeholder for the
@@ -91,9 +91,9 @@ def main(file_name):
 
     # Readout Layer
     # Finally, we add a layer, just like for the one layer softmax regression above.
-    result.update({'W_fc2': [200, 6]})
-    logging.info("Readout layer: [200, 6]")
-    W_fc2 = weight_variable([200, ds.train.n_class])
+    result.update({'W_fc2': [1024, 6]})
+    logging.info("Readout layer: [1024, 6]")
+    W_fc2 = weight_variable([1024, ds.train.n_class])
     b_fc2 = bias_variable([ds.train.n_class])
 
     # implements the convolutional model
@@ -139,7 +139,7 @@ def main(file_name):
 
 if __name__ == '__main__':
     data_saver = DataSaver()
-    for subject in settings.SUBJECTS:
+    for subject in settings.SUBJECTS[:1]:
         filename = os.path.join(settings.PATH_TO_MAT_FILES, subject.upper() + ".mat")
         logging.info("CLASSIFICATION TASK FOR SUBJECT %s - %s", subject, filename)
         doc = main(filename)

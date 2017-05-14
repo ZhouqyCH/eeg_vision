@@ -6,7 +6,7 @@ from brainpy.eeg import EEG
 PATH_TO_MAT_FILES = "/home/claudio/Projects/brain_data/vision/mat"
 SUBJECTS = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10"]
 MAT_FILES = {s: os.path.join(PATH_TO_MAT_FILES, s.upper()) + ".mat" for s in SUBJECTS}
-FILE_DESCRIPTION = [
+FILE_LIST = [
     dict(subject='s1', n_trials=5188, n_samples=166016, n_channels=124, trial_size=32,
          filename='/home/claudio/Projects/brain_data/vision/mat/S1.mat'),
     dict(subject='s2', n_trials=5185, n_samples=165920, n_channels=124, trial_size=32,
@@ -27,6 +27,17 @@ FILE_DESCRIPTION = [
          filename='/home/claudio/Projects/brain_data/vision/mat/S9.mat'),
     dict(subject='s10', n_trials=5184, n_samples=165888, n_channels=124, trial_size=32,
          filename='/home/claudio/Projects/brain_data/vision/mat/S10.mat')]
+DERIVATIONS = ["potential", "laplacian", "electric_field"]
+
+
+def extract_subject(full_path, ignore_errors):
+    try:
+        filename = full_path.split("/")[-1].split(".mat")[0].lower()
+        return filename
+    except Exception as e:
+        if ignore_errors:
+            return ""
+        raise Exception(e)
 
 MONGO_DB = 'brain'
 MONGO_PORT = 27017

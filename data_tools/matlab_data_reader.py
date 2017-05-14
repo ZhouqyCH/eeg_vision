@@ -27,5 +27,12 @@ def matlab_data_reader(file_name, labels='categoryLabels'):
                 group_size=1)
 
 
-def matlab_concat_labels(filenames, labels='categoryLabels'):
-    return reduce(lambda a, b: a + loadmat(b)[labels].ravel().tolist(), filenames, [])
+cached_data = dict()
+
+
+def get_matlab_labels(filename, labels='categoryLabels'):
+    data = cached_data.get(filename)
+    if not data:
+        data = loadmat(filename)[labels].ravel().tolist()
+        cached_data[filename] = data
+    return data

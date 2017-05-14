@@ -58,10 +58,10 @@ def main(db_id=None):
 
     # Second Convolutional Layer.
     # Stacks a second layer that provides 64 features for each 5x5 patch
-    result.update({'W_conv2': [5, 5, 32, 48]})
-    W_conv2 = weight_variable([5, 5, 32, 48])
-    b_conv2 = bias_variable([48])
-    logging.info("Second convolutional layer: [5, 5, 32, 48]")
+    result.update({'W_conv2': [5, 5, 32, 64]})
+    W_conv2 = weight_variable([5, 5, 32, 64])
+    b_conv2 = bias_variable([64])
+    logging.info("Second convolutional layer: [5, 5, 32, 64]")
 
     # h_conv2 has dimension (?, 62, 16, 64)
     h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
@@ -71,12 +71,12 @@ def main(db_id=None):
     # Densely Connected Layer. The image size has been reduced to 31x4. A fully-connected layer with 1024 neurons is
     # added to allow processing on the entire image. The tensor from the pooling layer is reshaped into a batch of
     # vectors, multiplied by a weight matrix, added to a bias, and applied to a ReLU
-    result.update({'W_fc1': [31 * 8 * 48, 200]})
-    W_fc1 = weight_variable([31 * 8 * 48, 200])
-    logging.info("First densely-condensed layer: [31 * 8 * 48, 200]")
-    b_fc1 = bias_variable([200])
+    result.update({'W_fc1': [31 * 8 * 64, 1024]})
+    W_fc1 = weight_variable([31 * 8 * 64, 1024])
+    logging.info("First densely-condensed layer: [31 * 8 * 64, 1024]")
+    b_fc1 = bias_variable([1024])
 
-    h_pool2_flat = tf.reshape(h_pool2, [-1, 31 * 8 * 48])
+    h_pool2_flat = tf.reshape(h_pool2, [-1, 31 * 8 * 64])
     h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
     # Dropout. TRo reduce overfitting, we will apply dropout before the readout layer. We create a placeholder for the
@@ -88,9 +88,9 @@ def main(db_id=None):
 
     # Readout Layer
     # Finally, we add a layer, just like for the one layer softmax regression above.
-    result.update({'W_fc2': [200, 6]})
-    logging.info("Readout layer: [200, 6]")
-    W_fc2 = weight_variable([200, bm.n_class])
+    result.update({'W_fc2': [1024, 6]})
+    logging.info("Readout layer: [1024, 6]")
+    W_fc2 = weight_variable([1024, bm.n_class])
     b_fc2 = bias_variable([bm.n_class])
 
     # implements the convolutional model
@@ -103,8 +103,8 @@ def main(db_id=None):
     cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y_conv, y_))
 
     # uses steepest gradient descent, with a step length of 0.5, to descend the cross entropy.
-    result.update({'AdamOptimizer': 1e-6})
-    train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
+    result.update({'AdamOptimizer': 1e-3})
+    train_step = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
 
     correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -135,9 +135,13 @@ def main(db_id=None):
 
 
 if __name__ == '__main__':
+    logging.info("Using Deep Learning for Brainwave Classification")
     data_saver = DataSaver()
     # db_id = "09e34d85d68f225259083f3e25c679e8"
-    db_id = "684ab9e36c83ffbfd54e26eef6502d97"
+    # db_id = "684ab9e36c83ffbfd54e26eef6502d97"
+    # db_id = "a07a5c40d321cd0a65d91be46974cfdf"
+    # db_id = "c446ab9ccefa1b7541312c835c428e3e"
+    db_id = "11f815a091ce5c9d8b3616850ae9bba1"
     doc = main(db_id=db_id)
     try:
         doc_id = data_saver.save(settings.MONGO_DNN_COLLECTION, doc=doc)

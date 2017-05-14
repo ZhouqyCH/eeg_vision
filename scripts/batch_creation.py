@@ -1,5 +1,6 @@
 import argparse
 
+import settings
 from data_tools.batch_creator import BatchCreator
 from utils.logging_utils import logging_reconfig
 
@@ -9,11 +10,16 @@ DEFAULT_DERIVATION = "electric_field"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("iter_max", type=int, help="maximum number of iterations")
-    parser.add_argument("batch_size", type=int, help="the size of each batch")
+    parser.add_argument("--iter_max", type=int, default=20000, help="maximum number of iterations")
+    parser.add_argument("--avg_group_size", type=int, default=0, help="group size (# trials) to average the EEG data")
+    parser.add_argument("-b", "--batch_size", type=int, help="the size of each batch", default=50)
+    parser.add_argument("--subject", choices=settings.SUBJECTS, help="the subject to be used in this test")
     parser.add_argument("--workdir", type=str, default=DEFAULT_WORK_DIR, help="default working directory")
-    parser.add_argument("-d", "--derivation", type=str, default=DEFAULT_DERIVATION, help="EEG derivation to be used")
+    parser.add_argument("-d", "--derivation", type=str, choices=settings.DERIVATIONS, default=DEFAULT_DERIVATION,
+                        help="EEG derivation to be used")
+    parser.add_argument("--seed", type=int, default=42, help="seed to set the random generator's state")
     args = parser.parse_args()
     work_dir = "/home/claudio/Projects/brain_data/vision/batches"
-    bc = BatchCreator(args.batch_size, args.workdir, eeg_derivation=args.derivation)
+    bc = BatchCreator(args.batch_size, args.workdir, eeg_derivation=args.derivation, subject=args.subject,
+                      avg_group_size=args.avg_group_size)
     bc.create(args.iter_max)
