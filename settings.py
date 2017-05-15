@@ -30,7 +30,18 @@ FILE_LIST = [
 DERIVATIONS = ["potential", "laplacian", "electric_field"]
 
 
-def extract_subject(full_path, ignore_errors):
+def file_list_filter(subject):
+    if subject not in SUBJECTS:
+        return dict()
+    d = filter(lambda x: x['subject'] == subject, FILE_LIST)[0]
+    d.pop('subject')
+    return d
+
+
+SUBJECT_DICT = {s: file_list_filter(s) for s in SUBJECTS}
+
+
+def fullpath2subject(full_path, ignore_errors):
     try:
         filename = full_path.split("/")[-1].split(".mat")[0].lower()
         return filename
