@@ -11,8 +11,8 @@ from sklearn.cross_validation import train_test_split
 
 import settings
 from data_tools import matlab_data_reader
-from data_tools.data_saver import DataSaver
-from data_tools.utils import OneHotEncoder
+from .data_saver import DataSaver
+from .utils import OneHotEncoder
 
 
 class BaseBootstrapBatch(object):
@@ -79,12 +79,17 @@ class BatchCreator(BaseBootstrapBatch):
         logging.info("%s: Successfully loaded data", self)
         self.info = merge(eeg.info, {'batch_size': batch_size, 'test_proportion': test_proportion, 'out_dir': out_dir,
                                      'seed': seed})
-        eeg = eeg.eeg.data
+        eeg = self.eeg_reshape(eeg.eeg.data)
         labels = self.info['labels']
         self.label_encoder = OneHotEncoder().fit(labels)
         train, self.test, train_labels, self.test_labels = train_test_split(eeg, labels, test_size=test_proportion,
                                                                             random_state=seed)
         super(BatchCreator, self).__init__(train, train_labels, group_size, batch_size, seed=seed)
+
+    def eeg_reshape(self, data):
+        if data.ndim == 3:
+            data = data[:, :, :, np.newaxis]
+        return data.reshape(self.info['n_channels'], self.info['trial_size'], -1, 3).transpose((2, 0, 1, 3))
 
     def __str__(self):
         return self.__class__.__name__

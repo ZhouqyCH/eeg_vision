@@ -31,12 +31,27 @@ DERIVATIONS = ["potential", "laplacian", "electric_field"]
 
 
 def file_list_filter(subject):
-    if subject not in SUBJECTS:
-        return dict()
-    d = filter(lambda x: x['subject'] == subject, FILE_LIST)[0]
-    d.pop('subject')
-    return d
-
+    if subject == 's1':
+        return FILE_LIST[0]
+    if subject == 's2':
+        return FILE_LIST[1]
+    if subject == 's3':
+        return FILE_LIST[2]
+    if subject == 's4':
+        return FILE_LIST[3]
+    if subject == 's5':
+        return FILE_LIST[4]
+    if subject == 's6':
+        return FILE_LIST[5]
+    if subject == 's7':
+        return FILE_LIST[6]
+    if subject == 's8':
+        return FILE_LIST[7]
+    if subject == 's9':
+        return FILE_LIST[8]
+    if subject == 's10':
+        return FILE_LIST[9]
+    return dict()
 
 SUBJECT_DICT = {s: file_list_filter(s) for s in SUBJECTS}
 

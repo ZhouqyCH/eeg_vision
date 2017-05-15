@@ -1,7 +1,7 @@
 import argparse
 
 import settings
-from data_tools.batch_creator import BatchCreator
+from data_tools.bootstrap_batch import BatchCreator
 from utils.logging_utils import logging_reconfig
 
 logging_reconfig()
@@ -15,11 +15,12 @@ if __name__ == '__main__':
     parser.add_argument("-b", "--batch_size", type=int, help="the size of each batch", default=50)
     parser.add_argument("--subject", choices=settings.SUBJECTS, help="the subject to be used in this test")
     parser.add_argument("--workdir", type=str, default=DEFAULT_WORK_DIR, help="default working directory")
+    parser.add_argument("--test_proportion", type=float, default=.15, help="the proportion of samples in the test set")
     parser.add_argument("-d", "--derivation", type=str, choices=settings.DERIVATIONS, default=DEFAULT_DERIVATION,
                         help="EEG derivation to be used")
     parser.add_argument("--seed", type=int, default=42, help="seed to set the random generator's state")
     args = parser.parse_args()
     work_dir = "/home/claudio/Projects/brain_data/vision/batches"
-    bc = BatchCreator(args.batch_size, args.workdir, eeg_derivation=args.derivation, subject=args.subject,
-                      avg_group_size=args.avg_group_size)
+    bc = BatchCreator(args.subject, args.batch_size, args.avg_group_size, args.derivation, args.test_proportion,
+                      args.workdir, seed=args.seed)
     bc.create(args.iter_max)
