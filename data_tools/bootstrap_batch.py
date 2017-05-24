@@ -1,8 +1,9 @@
+import logging
 import os
+import traceback
 from collections import defaultdict
 
 import deepdish as dd
-import logging
 import numpy as np
 import pandas as pd
 from brainpy.eeg import EEG
@@ -31,11 +32,8 @@ class BaseBootstrapBatch(object):
         if len(self._cache[key]) >= self.group_size:
             values_list = self._cache.pop(key)
             m = sum(values_list) / len(values_list)
-            return self.transform_key(key), m
+            return key, m
         return None, None
-
-    def transform_key(self, key):
-        return key
 
     def next_batch(self):
         batch = []
@@ -56,8 +54,7 @@ class EEGReader(object):
         d = settings.SUBJECT_DICT[self.info['subject']]
         self.eeg = EEG(data_reader=matlab_data_reader).read(d['filename'])
         self.info['labels'] = self.eeg.trial_labels
-        self.info['classes'] = list(set(self.info['labels']))
-        self.info['n_classes'] = len(self.info['classes'])
+        self.info['n_classes'] = len(set(self.info['labels']))
         self.info = merge(self.info, d)
         if self.info['derivation'] == 'potential':
             self.info['n_comps'] = 1
@@ -77,12 +74,16 @@ class BatchCreator(BaseBootstrapBatch):
         logging.info("%s: Loading data from subject %s", self, subject)
         eeg = EEGReader(subject, derivation).load_eeg()
         logging.info("%s: Successfully loaded data", self)
-        self.info = merge(eeg.info, {'batch_size': batch_size, 'test_proportion': test_proportion, 'out_dir': out_dir,
+        self.info = merge(eeg.info, {'batch_size': batch_size,
+                                     'test_proportion': test_proportion,
+                                     'out_dir': out_dir,
                                      'seed': seed})
         eeg = self.eeg_reshape(eeg.eeg.data)
-        labels = self.info['labels']
+        labels = self.info.pop('labels')
         self.label_encoder = OneHotEncoder().fit(labels)
-        train, self.test, train_labels, self.test_labels = train_test_split(eeg, labels, test_size=test_proportion,
+        train, self.test, train_labels, self.test_labels = train_test_split(eeg,
+                                                                            labels,
+                                                                            test_size=test_proportion,
                                                                             random_state=seed)
         super(BatchCreator, self).__init__(train, train_labels, group_size, batch_size, seed=seed)
 
@@ -94,21 +95,24 @@ class BatchCreator(BaseBootstrapBatch):
     def __str__(self):
         return self.__class__.__name__
 
-    def transform_key(self, key):
-        return self.label_encoder.transform(key)
+    def transform_labels(self, labels):
+        return np.array(map(lambda x: self.label_encoder.transform(x), labels))
 
     def create(self, max_iter):
         logging.info("%s: Creating the batch files", self)
+        self.info['files_train'] = []
         for i in range(max_iter):
-            batch_file = os.path.join(self.info['out_dir'], "%s_train_%s.hd5" % (self.info['subject'], i+1))
             batch = self.next_batch()
-            samples = np.concatenate(map(lambda x: x[1], batch))
-            labels = map(lambda x: x[0], batch)
-            dd.io.save(batch_file, {'samples': samples, 'labels': labels})
+            samples = np.asarray(map(lambda x: x[1], batch))
+            labels = self.transform_labels(map(lambda x: x[0], batch))
+            batch_file = os.path.join(self.info['out_dir'], "%s_train_%s.hd5" % (self.info['subject'], i+1))
+            dd.io.save(batch_file, {'samples': samples,
+                                    'labels': labels})
             logging.info("%s: Successfully exported train data to %s", self, batch_file)
+            self.info['files_train'].append(batch_file)
         test_file = os.path.join(self.info['out_dir'], "%s_test.hd5" % self.info['subject'])
         dd.io.save(test_file, {'samples': self.test,
-                               'labels': [list(self.label_encoder.transform(x)) for x in self.test_labels]})
+                               'labels': self.transform_labels(self.test_labels)})
         logging.error("%s: Successfully created the test file %s", self, test_file)
         self.info['n_train_batches'] = max_iter
         self.info['n_test_batches'] = 1
@@ -120,5 +124,5 @@ class BatchCreator(BaseBootstrapBatch):
             doc_id = data_saver.save(settings.MONGO_DNN_COLLECTION, doc=doc)
             logging.info("Successfully created the new document %s in the DB", doc_id)
         except Exception as e:
-            logging.error("Failed to create a new document in the DB: %s", e)
+            logging.error("Failed to create a new document in the DB: %s\n%s", e, traceback.format_exc())
         return self

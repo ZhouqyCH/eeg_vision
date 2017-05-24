@@ -28,16 +28,14 @@ class BatchManager(object):
         return self._data[typ]['labels']
 
     def __getattr__(self, item):
-        if item == 'n_comps' and self._doc['eeg_derivation'] == 'electric_field':
+        if item == 'n_comps' and self._doc['derivation'] == 'electric_field':
             return 3
         elif item == 'n_comps':
             return 1
-        if item not in self._doc and item not in self._doc['eeg']:
-            raise AttributeError("'%s' is not a valid attribute", item)
         if item in self._doc:
             return self._doc[item]
         else:
-            return self._doc['eeg'][item]
+            raise AttributeError("'%s' is not a valid attribute" % item)
 
     def _next(self, typ, curr, files):
         if curr >= len(files):

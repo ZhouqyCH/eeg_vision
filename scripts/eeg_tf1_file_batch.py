@@ -1,7 +1,10 @@
+import json
 import logging
 import sys
 import traceback
 from datetime import datetime
+
+import pandas as pd
 
 import tensorflow as tf
 
@@ -32,13 +35,13 @@ def max_pool_2x2(x):
 logging_reconfig()
 
 
-def main(db_id=None):
-    bm = BatchManager().load(db_id)
+def main(db_uid=None):
+    bm = BatchManager().load(db_uid)
     # The input x will consist of a tensor of floating point numbers of shape (?, 124, 32, 3)
     x = tf.placeholder(tf.float32, shape=[None, bm.n_channels, bm.trial_size, bm.n_comps])
     # The target output classes y_ will consist of a 2d tensor, where each row is a one-hot 6-dimensional vector
     # indicating which digit class (zero through 5) the corresponding trial belongs to
-    y_ = tf.placeholder(tf.float32, shape=[None, bm.n_class])
+    y_ = tf.placeholder(tf.float32, shape=[None, bm.n_classes])
 
     result = dict()
 
@@ -90,8 +93,8 @@ def main(db_id=None):
     # Finally, we add a layer, just like for the one layer softmax regression above.
     result.update({'W_fc2': [1024, 6]})
     logging.info("Readout layer: [1024, 6]")
-    W_fc2 = weight_variable([1024, bm.n_class])
-    b_fc2 = bias_variable([bm.n_class])
+    W_fc2 = weight_variable([1024, bm.n_classes])
+    b_fc2 = bias_variable([bm.n_classes])
 
     # implements the convolutional model
     y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
@@ -113,23 +116,31 @@ def main(db_id=None):
     sess.run(tf.initialize_all_variables())
 
     result.update({'batch_size': bm.batch_size})
-
+    saver = tf.train.Saver()
+    train_accuracy = []
     with sess.as_default():
         logging.info("Training the network with a maximum of %s batches of size %s", bm.n_train_batches, bm.batch_size)
         last_iter = 0
         while bm.next_batch():
-            train_accuracy = accuracy.eval(feed_dict={x: bm.samples('train'), y_: bm.labels('train'), keep_prob: 1.0})
-            logging.info("%s: last iter %d - training accuracy: %g", datetime.now().isoformat(), last_iter, train_accuracy)
-            result.update({'last_iter': last_iter, 'last_train_accuracy': train_accuracy})
+            acc = accuracy.eval(feed_dict={x: bm.samples('train'), y_: bm.labels('train'), keep_prob: 1.0})
+            logging.info("%s: last iter %d - training accuracy: %g", datetime.now().isoformat(), last_iter, acc)
             train_step.run(feed_dict={x: bm.samples('train'), y_: bm.labels('train'), keep_prob: 0.5})
             last_iter += bm.batch_size
+            train_accuracy.append({'last_iter': last_iter, 'acc': float(acc)})
+        result.update({'train_accuracy': pd.DataFrame(train_accuracy).to_json()})
+        try:
+            save_path = saver.save(sess, "model_%s.ckpt" % db_uid)
+            logging.info("Successfully saved the model in file %s", save_path)
+            result.update({'model_file': save_path})
+        except Exception as e:
+            logging.error("Failed to save the model: %s\n%s", e, traceback.format_exc())
         logging.info("Computing model accuracy")
         test_accuracy = []
         while bm.next_test():
             acc = accuracy.eval(feed_dict={x: bm.samples('test'), y_: bm.labels('test'), keep_prob: 1.0})
             test_accuracy.append(float(acc))
             logging.info("test batch %s of %s: %g", len(test_accuracy) + 1, bm.n_test_batches, acc)
-        result.update({'test_accuracy': test_accuracy})
+        result.update({'test_accuracy': json.dumps(test_accuracy)})
         logging.info("%s: test accuracy %s", datetime.now().isoformat(), ["%g" % x for x in test_accuracy])
     return result
 
@@ -141,8 +152,9 @@ if __name__ == '__main__':
     # db_id = "684ab9e36c83ffbfd54e26eef6502d97"
     # db_id = "a07a5c40d321cd0a65d91be46974cfdf"
     # db_id = "c446ab9ccefa1b7541312c835c428e3e"
-    db_id = "11f815a091ce5c9d8b3616850ae9bba1"
-    doc = main(db_id=db_id)
+    # db_id = "11f815a091ce5c9d8b3616850ae9bba1"
+    db_uid = '9a9d89058dbaa16687ede93d38a051e8'
+    doc = main(db_uid=db_uid)
     try:
         doc_id = data_saver.save(settings.MONGO_DNN_COLLECTION, doc=doc)
     except Exception, e:
