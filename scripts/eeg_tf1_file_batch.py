@@ -5,6 +5,7 @@ import traceback
 from datetime import datetime
 
 import pandas as pd
+import numpy as np
 
 import tensorflow as tf
 
@@ -14,9 +15,9 @@ from data_tools.data_saver import DataSaver
 from utils.logging_utils import logging_reconfig
 
 
-def weight_variable(shape):
+def weight_variable(shape, name):
     initial = tf.truncated_normal(shape, stddev=0.1)
-    return tf.Variable(initial)
+    return tf.Variable(initial, name=name)
 
 
 def bias_variable(shape):
@@ -35,8 +36,8 @@ def max_pool_2x2(x):
 logging_reconfig()
 
 
-def main(db_uid=None):
-    bm = BatchManager().load(db_uid)
+def main(input_uid):
+    bm = BatchManager().load(input_uid)
     # The input x will consist of a tensor of floating point numbers of shape (?, 124, 32, 3)
     x = tf.placeholder(tf.float32, shape=[None, bm.n_channels, bm.trial_size, bm.n_comps])
     # The target output classes y_ will consist of a 2d tensor, where each row is a one-hot 6-dimensional vector
@@ -50,7 +51,7 @@ def main(db_uid=None):
     # [5, 5, 3, 32]. The first two dimensions are the patch size, the next is the number of electric field components,
     # and the last is the number of output components
     result.update({'W_conv1': [5, 5, 3, 32]})
-    W_conv1 = weight_variable([5, 5, 3, 32])
+    W_conv1 = weight_variable([5, 5, 3, 32], "weights_conv1")
     logging.info("First convolutional layer: [5, 5, 3, 32]")
     # a bias vector with a component for each output channel
     b_conv1 = bias_variable([32])
@@ -62,7 +63,7 @@ def main(db_uid=None):
     # Second Convolutional Layer.
     # Stacks a second layer that provides 64 features for each 5x5 patch
     result.update({'W_conv2': [5, 5, 32, 64]})
-    W_conv2 = weight_variable([5, 5, 32, 64])
+    W_conv2 = weight_variable([5, 5, 32, 64], "weights_conv2")
     b_conv2 = bias_variable([64])
     logging.info("Second convolutional layer: [5, 5, 32, 64]")
 
@@ -75,7 +76,7 @@ def main(db_uid=None):
     # added to allow processing on the entire image. The tensor from the pooling layer is reshaped into a batch of
     # vectors, multiplied by a weight matrix, added to a bias, and applied to a ReLU
     result.update({'W_fc1': [31 * 8 * 64, 1024]})
-    W_fc1 = weight_variable([31 * 8 * 64, 1024])
+    W_fc1 = weight_variable([31 * 8 * 64, 1024], "weights_fc1")
     logging.info("First densely-condensed layer: [31 * 8 * 64, 1024]")
     b_fc1 = bias_variable([1024])
 
@@ -93,7 +94,7 @@ def main(db_uid=None):
     # Finally, we add a layer, just like for the one layer softmax regression above.
     result.update({'W_fc2': [1024, 6]})
     logging.info("Readout layer: [1024, 6]")
-    W_fc2 = weight_variable([1024, bm.n_classes])
+    W_fc2 = weight_variable([1024, bm.n_classes], "weights_fc2")
     b_fc2 = bias_variable([bm.n_classes])
 
     # implements the convolutional model
@@ -115,8 +116,7 @@ def main(db_uid=None):
     sess = tf.Session()
     sess.run(tf.initialize_all_variables())
 
-    result.update({'batch_size': bm.batch_size})
-    saver = tf.train.Saver()
+    result.update({'input_uid': input_uid, 'batch_size': bm.batch_size})
     train_accuracy = []
     with sess.as_default():
         logging.info("Training the network with a maximum of %s batches of size %s", bm.n_train_batches, bm.batch_size)
@@ -129,19 +129,25 @@ def main(db_uid=None):
             train_accuracy.append({'last_iter': last_iter, 'acc': float(acc)})
         result.update({'train_accuracy': pd.DataFrame(train_accuracy).to_json()})
         try:
-            save_path = saver.save(sess, "model_%s.ckpt" % db_uid)
+            saver = tf.train.Saver({"weights_conv1": W_conv1,
+                                    "weights_conv2": W_conv2,
+                                    "weights_fc1": W_fc1,
+                                    "weights_fc2": W_fc2})
+            save_path = saver.save(sess, "model_%s.ckpt" % input_uid)
             logging.info("Successfully saved the model in file %s", save_path)
             result.update({'model_file': save_path})
         except Exception as e:
             logging.error("Failed to save the model: %s\n%s", e, traceback.format_exc())
         logging.info("Computing model accuracy")
-        test_accuracy = []
+        test_classification = []
         while bm.next_test():
-            acc = accuracy.eval(feed_dict={x: bm.samples('test'), y_: bm.labels('test'), keep_prob: 1.0})
-            test_accuracy.append(float(acc))
-            logging.info("test batch %s of %s: %g", len(test_accuracy) + 1, bm.n_test_batches, acc)
-        result.update({'test_accuracy': json.dumps(test_accuracy)})
-        logging.info("%s: test accuracy %s", datetime.now().isoformat(), ["%g" % x for x in test_accuracy])
+            test_classification += [(int(np.argmax(bm.labels('test')[n])),
+                                     int(sess.run(tf.argmax(y_conv, 1), feed_dict={
+                                         x: bm.samples('test')[n, :, :, :][None, :, :, :], keep_prob: 1.0})))
+                                    for n in range(bm.samples('test').shape[0])]
+        test_accuracy = float(np.mean([int(a == b) for a, b in test_classification]))
+        result.update({'test_accuracy': test_accuracy, 'test_classification': json.dumps(test_classification)})
+        logging.info("test accuracy %g", test_accuracy)
     return result
 
 
@@ -153,8 +159,9 @@ if __name__ == '__main__':
     # db_id = "a07a5c40d321cd0a65d91be46974cfdf"
     # db_id = "c446ab9ccefa1b7541312c835c428e3e"
     # db_id = "11f815a091ce5c9d8b3616850ae9bba1"
+    # db_uid = '9a9d89058dbaa16687ede93d38a051e8'
     db_uid = '9a9d89058dbaa16687ede93d38a051e8'
-    doc = main(db_uid=db_uid)
+    doc = main(db_uid)
     try:
         doc_id = data_saver.save(settings.MONGO_DNN_COLLECTION, doc=doc)
     except Exception, e:
