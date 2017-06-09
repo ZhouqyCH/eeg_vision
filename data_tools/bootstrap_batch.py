@@ -39,7 +39,7 @@ class BootstrapBatch(object):
         return batch
 
     def create(self, max_iter, path, prefix):
-        bm = BootstrapBatchFiles(auto_remove=self._auto_remove_files)
+        bm = BootstrapBatchFiles(auto_remove=self._auto_remove_files, batch_size=self._batch_size)
         for i in range(max_iter):
             batch = self.next_batch()
             samples = np.asarray(map(lambda x: x[0], batch))
