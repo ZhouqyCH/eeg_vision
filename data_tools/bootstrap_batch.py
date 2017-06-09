@@ -1,128 +1,94 @@
-import logging
+import glob
 import os
-import traceback
 from collections import defaultdict
 
 import deepdish as dd
 import numpy as np
-import pandas as pd
-from brainpy.eeg import EEG
-from funcy.colls import merge
-from sklearn.cross_validation import train_test_split
-
-import settings
-from data_tools import matlab_data_reader
-from .data_saver import DataSaver
-from .utils import OneHotEncoder
 
 
-class BaseBootstrapBatch(object):
-    def __init__(self, arr, labels, group_size, batch_size, seed=42):
+class BootstrapBatch(object):
+    def __init__(self, arr, labels, group_size_max, batch_size, seed=42, auto_remove_files=True):
         self._seed = seed
         self.arr = arr
         self.labels = labels
         self._indices = range(len(labels))
         self._batch_size = batch_size
-        self.group_size = group_size
+        self.group_size_max = group_size_max
+        self._curr_group_size = 1
+        self._curr_file_index = None
         self._cache = defaultdict(list)
+        self._auto_remove_files = auto_remove_files
         np.random.rand(seed)
 
-    def _add(self, key, arr):
+    def _add_to_group(self, key, arr):
         self._cache[key].append(arr)
-        if len(self._cache[key]) >= self.group_size:
+        group = None
+        if len(self._cache[key]) >= self._curr_group_size:
             values_list = self._cache.pop(key)
-            m = sum(values_list) / len(values_list)
-            return key, m
-        return None, None
+            group = sum(values_list) / len(values_list)
+        return group, key
 
     def next_batch(self):
         batch = []
+        self._curr_group_size = np.random.choice(range(1, self.group_size_max + 1))
         while len(batch) < self._batch_size:
             k = np.random.choice(self._indices)
-            lab, mean = self._add(self.labels[k], self.arr[k])
-            if mean is not None:
-                batch.append((lab, mean))
+            group, label = self._add_to_group(self.labels[k], self.arr[k])
+            if group is not None:
+                batch.append((group, label))
         return batch
 
-
-class EEGReader(object):
-    def __init__(self, subject, derivation):
-        self.info = {'subject': subject, 'derivation': derivation}
-        self.eeg = None
-
-    def load_eeg(self):
-        d = settings.SUBJECT_DICT[self.info['subject']]
-        self.eeg = EEG(data_reader=matlab_data_reader).read(d['filename'])
-        self.info['labels'] = self.eeg.trial_labels
-        self.info['n_classes'] = len(set(self.info['labels']))
-        self.info = merge(self.info, d)
-        if self.info['derivation'] == 'potential':
-            self.info['n_comps'] = 1
-        elif self.info['derivation'] == 'laplacian':
-            self.eeg.get_laplacian(inplace=True)
-            self.info['n_comps'] = 1
-        elif self.info['derivation'] == "electric_field":
-            self.eeg.get_electric_field(inplace=True)
-            self.info['n_comps'] = 3
-        else:
-            raise KeyError("Derivation '%s' is not supported", self.info['derivation'])
-        return self
-
-
-class BatchCreator(BaseBootstrapBatch):
-    def __init__(self, subject, batch_size, group_size, derivation, test_proportion, out_dir, seed=42):
-        logging.info("%s: Loading data from subject %s", self, subject)
-        eeg = EEGReader(subject, derivation).load_eeg()
-        logging.info("%s: Successfully loaded data", self)
-        self.info = merge(eeg.info, {'batch_size': batch_size,
-                                     'test_proportion': test_proportion,
-                                     'out_dir': out_dir,
-                                     'seed': seed})
-        eeg = self.eeg_reshape(eeg.eeg.data)
-        labels = self.info.pop('labels')
-        self.label_encoder = OneHotEncoder().fit(labels)
-        train, self.test, train_labels, self.test_labels = train_test_split(eeg,
-                                                                            labels,
-                                                                            test_size=test_proportion,
-                                                                            random_state=seed)
-        super(BatchCreator, self).__init__(train, train_labels, group_size, batch_size, seed=seed)
-
-    def eeg_reshape(self, data):
-        if data.ndim == 3:
-            data = data[:, :, :, np.newaxis]
-        return data.reshape(self.info['n_channels'], self.info['trial_size'], -1, 3).transpose((2, 0, 1, 3))
-
-    def __str__(self):
-        return self.__class__.__name__
-
-    def transform_labels(self, labels):
-        return np.array(map(lambda x: self.label_encoder.transform(x), labels))
-
-    def create(self, max_iter):
-        logging.info("%s: Creating the batch files", self)
-        self.info['files_train'] = []
+    def create(self, max_iter, path, prefix):
+        bm = BootstrapBatchFiles(auto_remove=self._auto_remove_files)
         for i in range(max_iter):
             batch = self.next_batch()
-            samples = np.asarray(map(lambda x: x[1], batch))
-            labels = self.transform_labels(map(lambda x: x[0], batch))
-            batch_file = os.path.join(self.info['out_dir'], "%s_train_%s.hd5" % (self.info['subject'], i+1))
+            samples = np.asarray(map(lambda x: x[0], batch))
+            labels = map(lambda x: x[1], batch)
+            batch_file = os.path.join(path, "%s%s.hd5" % (prefix, i+1))
             dd.io.save(batch_file, {'samples': samples,
                                     'labels': labels})
-            logging.info("%s: Successfully exported train data to %s", self, batch_file)
-            self.info['files_train'].append(batch_file)
-        test_file = os.path.join(self.info['out_dir'], "%s_test.hd5" % self.info['subject'])
-        dd.io.save(test_file, {'samples': self.test,
-                               'labels': self.transform_labels(self.test_labels)})
-        logging.error("%s: Successfully created the test file %s", self, test_file)
-        self.info['n_train_batches'] = max_iter
-        self.info['n_test_batches'] = 1
-        self.info['files_test'] = [test_file]
-        logging.info("Finished to create batch files")
-        doc = pd.Series(self.info).to_dict()
-        data_saver = DataSaver()
-        try:
-            doc_id = data_saver.save(settings.MONGO_DNN_COLLECTION, doc=doc)
-            logging.info("Successfully created the new document %s in the DB", doc_id)
-        except Exception as e:
-            logging.error("Failed to create a new document in the DB: %s\n%s", e, traceback.format_exc())
+            bm.append(batch_file)
+        return bm
+
+    def load(self, path, prefix):
+        bm = BootstrapBatchFiles(auto_remove=self._auto_remove_files, batch_size=self._batch_size)
+        pattern = os.path.join(path, prefix + "*.hd5")
+        for batch_file in glob.glob(pattern):
+            bm.append(batch_file)
+        return bm
+
+
+class BootstrapBatchFiles(object):
+    def __init__(self, batch_files=None, auto_remove=True, batch_size=None):
+        self._curr_file_index = 0
+        self._batch_files = batch_files or []
+        self._auto_remove = auto_remove
+        self.size = batch_size
+
+    @property
+    def count(self):
+        return self._curr_file_index
+
+    @property
+    def count_max(self):
+        return len(self._batch_files)
+
+    def next_batch(self):
+        if self._curr_file_index >= self.count_max:
+            return None, None
+        path = self._batch_files[self._curr_file_index]
+        self._curr_file_index += 1
+        data = dd.io.load(path)
+        if self._auto_remove:
+            os.remove(path)
+        return data['samples'], data['labels']
+
+    def append(self, filename):
+        self._batch_files.append(filename)
+        return self
+
+    def remove_batch_files(self):
+        for file_name in self._batch_files:
+            if os.path.isfile(file_name):
+                os.remove(file_name)
         return self

@@ -3,7 +3,7 @@ from sklearn.cross_validation import train_test_split
 
 from brainpy.eeg import EEG
 
-from .utils import one_hot_encoder
+from utils import one_hot_encoder
 from matlab_data_reader import matlab_data_reader
 
 
