@@ -115,7 +115,6 @@ class ConvNet(object):
                 train_step.run(feed_dict={x: samples, y_: labels, keep_prob: 0.5})
                 last_iter += batcher.size
                 self.train_accuracy.append({'last_iter': last_iter, 'acc': float(acc)})
-                break
             if output_filename:
                 try:
                     save_path = saver.save(sess, output_filename)
